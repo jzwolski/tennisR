@@ -4,12 +4,12 @@
 \alias{Eloratings_lag}
 \title{Creates elo ratings for players within a specified time frame with a one month lag before the specified time frame.}
 \usage{
-Eloratings_lag(d1, d2, x)
+Eloratings_lag(date1, date2, x)
 }
 \arguments{
-\item{d1}{The beginning date for ratings.}
+\item{date1}{The beginning date for ratings.}
 
-\item{d2}{The end date for ratings.}
+\item{date2}{The end date for ratings.}
 
 \item{x}{A data frame where first column is the number of days from a specified date, the second column is Player 1, the third column is Player 2, and the last column is the result, either a 0 or 1.}
 }
