@@ -2,17 +2,17 @@
 % Please edit documentation in R/MatchResultselofunction.r
 \name{MatchResultselofunction}
 \alias{MatchResultselofunction}
-\title{Formats an updated MatchStats database to be able to find elo ratings.}
+\title{Formats a database of match statistics to be able to find elo ratings.}
 \usage{
 MatchResultselofunction(x)
 }
 \arguments{
-\item{x}{Database of updated match statistics, namely the resulting database from the MatchStatsfunction.}
+\item{x}{Database of match statistics, in the form of the MatchStats database.}
 }
 \value{
-A dataset of updated match results formatted to find elo ratings.
+A dataset of match results formatted to find elo ratings.
 }
 \description{
-Formats an updated MatchStats database to be able to find elo ratings.
+Formats a database of match statistics to be able to find elo ratings.
 }
 
