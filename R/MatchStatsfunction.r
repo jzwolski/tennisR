@@ -4,7 +4,7 @@
 #' @return A complete database of match statistics, combining the built-in database with statistics from the new tournaments.
 #' @export
 MatchStatsfunction <- function(x){
-  MatchStatsadd <- NULL
+  additionalMatchStats <- NULL
   for (j in 1:length(x))
   {
     #Find all links on the page of the draws#
@@ -365,12 +365,16 @@ MatchStatsfunction <- function(x){
     eachtourn <- eachtourn[order(eachtourn$Round),]
     eachtourn$MatchID <- rep(1:length(files.3), each=2)
     if(j == 1){
-      MatchStatsadd <- eachtourn
+      additionalMatchStats <- eachtourn
     } else {
-      MatchStatsadd <- rbind(MatchStatsadd, eachtourn)
+      additionalMatchStats <- rbind(additionalMatchStats, eachtourn)
     }
   }
-  additionalMatchStats <- rbind(MatchStatsadd, MatchStats)
-  additionalMatchStats <- additionalMatchStats[order(-xtfrm(additionalMatchStats$Date)),]
+  
+  additionalMatchStats <- additionalMatchStats[order(additionalMatchStats$Year, additionalMatchStats$Tournament, xtfrm(additionalMatchStats$Date), additionalMatchStats$MatchID),]
+  additionalMatchStats$Player <- as.character(additionalMatchStats$Player)
+  additionalMatchStats$Opponent <- as.character(additionalMatchStats$Opponent)
+  additionalMatchStats[is.na(additionalMatchStats)] <- 0
+  
   return(additionalMatchStats)
 }
