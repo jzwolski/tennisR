@@ -1,6 +1,6 @@
 Package: tennisR
 Title: Tennis Match Statistics
-Description: Displays match statistics, calculates player ratings, and creates predictions.
+Description: Displays match statistics, and calculates player ratings predictions.
 Version: 1.0.0
 Author: Justin Zwolski <jzwolski@iastate.edu>
 Maintainer: Justin Zwolski <jzwolski@iastate.edu>
