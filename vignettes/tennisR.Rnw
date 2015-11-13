@@ -1,0 +1,163 @@
+\documentclass{article}
+
+\setlength{\parindent}{0pt} % Remove indent at new paragraphs
+\setcounter{secnumdepth}{0}  % Remove section numbering at certain depth
+\usepackage[round,sort]{natbib}
+\usepackage{fixltx2e}
+\usepackage{graphicx}  % For external pictures
+\usepackage{float}
+\usepackage{subfig}	% Add subfigures within figures
+\usepackage{verbatim}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{amssymb,amsbsy,amsmath}
+\usepackage{epsfig}
+\usepackage[left=3cm,top=3cm,bottom=3.5cm,right=3cm]{geometry} % For easy document margins
+\usepackage{fancyhdr} % For customization of header/footer
+\usepackage{adjustbox}
+\numberwithin{equation}{section} % Equation numbers relative to sections
+
+\newcommand{\code}[1]{{\texttt{#1}}}
+\newcommand{\pkg}[1]{{\texttt{#1}}}
+\newcommand{\class}[1]{{\textit{#1}}}
+\newcommand{\R}{{\normalfont\textsf{R }}{}}
+
+\begin{document}
+
+\title{Vignette: All About Tennis with tennisR}
+\author{Justin Zwolski}
+\date{\pkg{tennisR} version \Sexpr{packageDescription("tennisR")[["Version"]]} , \Sexpr{Sys.Date()} }
+\maketitle
+
+\tableofcontents
+\setcounter{footnote}{1} \footnotetext{This \LaTeX\ vignette document is created using the \R function \code{Sweave} on the \R package \pkg{tennisR}. It is automatically downloaded with the package and can be accessed with the \R command \code{vignette("tennisR")}.}  \newpage
+\setlength{\parskip}{10pt} % Inter-paragraph spacing
+
+<<echo=FALSE>>=
+rm(list=ls())
+@ 
+
+\section{Introduction}
+
+\subsection{What is tennisR?} 
+
+Analytics is becoming more and more popular in tennis.  Statistics from each match are being collected, and can be used to find ways to improve a player's performance.  The \pkg{tennisR} package provides an easy way to put match statistics into a database form that can be used for analysis.  This package also can compute player ratings for any given time period, and make predictions based on these ratings.  The available functions in the \pkg{tennisR} package and a detailed explanation of their usage will be discussed in this vignette.
+
+\subsection{Data Collection}
+
+The \pkg{tennisR} package provides an initial dataset of match statistics.  These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
+
+The base dataset in the \pkg{tennisR} package contains all matches for the 2013 and 2014 full seasons, as well as matches in 2015 up to and including the U.S. Open, for a total of 7,327 matches.  Every match is given two rows, one row of match statistics for each player.  There are a total of 46 variables in the dataset.
+
+<<results='hide', echo=FALSE>>=
+library(tennisR)
+@
+
+<<>>=
+data(MatchStats)
+MatchStats[c(1,2),c(1:8)]
+dim(MatchStats)
+@
+
+
+The first few variables provide information about the specific tournament and match.  The majority of the variables are the match statistics, which include serving, returning, and overall statistics.  An example of one of the serving statistics is first serve percentage, the percentage of first serves in play.
+
+<<echo=FALSE>>=
+MatchStats[c(1,2),c(7,8,14,15)]
+@
+
+Most of the statistics also have a calculated difference associated with them.  This is the difference in percentage of a statistic between two players in the same match.
+
+Given the initial dataset of match statistics, graphs can be produced to look at trends among players, tournaments, or any variable in the dataset.  The following graph shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
+
+<<echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
+library(ggplot2)
+ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
+       aes(x=Date, y=First_Serve_Per)) + ylab("First Serve Percentage") +
+       geom_line() + 
+       geom_point(data=MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
+                  aes(x=Date, y=First_Serve_Per), size=4)
+@
+
+\section{Available Functions}
+
+There are functions available in the \pkg{tennisR} package regarding match statistics, elo ratings, and predictions.  Each function is covered in detail, showing some examples, and the required format for the function inputs.
+
+\subsection{NewMatchStats}
+
+The \texttt{NewMatchStats} function allows the user to expand the original dataset in the package.  While the base dataset only contains matches from 2013 to the 2015 U.S. Open, matches from any tournament can be added to this dataset via the \texttt{NewMatchStats} function.  There is only one input to the \texttt{NewMatchStats} function.  This input is the website for a tournament.  The input can also include multiple websites.  In this case, the websites would need to be grouped together in a vector in order for the function to recognize each individual website.  As described above, the \pkg{tennisR} package uses data from the ATP World Tour website.  Therefore, the \texttt{NewMatchStats} function only has the ability to read tournament information from ATP websites.  
+
+For example, to create a dataset of match statistics for the 2015 ATP World Tour Masters 1000 Series tournament in Shanghai, which occurred after the 2015 U.S. Open, the following input to the \texttt{NewMatchStats} function would be needed:
+
+<<eval=FALSE>>=
+NewMatchStats("http://www.atpworldtour.com/en/scores/archive/shanghai/5014/2015/draws")
+@
+
+Running this line of code would produce a dataframe of match statistics just for the tournament in Shanghai.  The dimensions of this dataframe are 110 by 46.  The number of variables is the same number as in the original dataset, which is to be expected.  Since two rows are used for each match, 55 matches were played during the tournament in Shanghai.
+
+These match statistics can then easily be combined with the base dataset by using the rbind command.
+
+\subsection{MatchResultselo}
+
+The rest of the functions in the \pkg{tennisR} package relate to player ratings.  The ATP World Tour does have an official player ranking list, but this ranking is based on a yearly summation of points.  The chosen rating system for the \pkg{tennisR} package, the elo rating system, allows ratings to be calculated between any given time period.  In the elo rating system, each player is assigned an initial score.  A player's score changes each match, depending on the result.  The winning player will "take away" points from the losing player, thus increasing his player rating.  The losing player will lose points, thus decreasing his player rating.  The difference in elo rating between two players determines how many points are "transferred" from the losing player to the winning player.  However, if there is a large gap in points between players, and the higher rated player wins the match, very few points will be lost by the losing player since he was expected to lose the match.  If the lower rated player actually did win the match, many points would be transferred from the losing player to the winning player, thus increasing the player rating for the winner substantially.
+
+The \pkg{PlayerRatings} package by Alec Stephenson has a built in function that calculates elo ratings.  Since the elo rating system is only based on the result of each match, the full dataset of match statistics must be modified.  The \texttt{MatchResultselo} function in the \pkg{tennisR} package takes a full dataset of match statistics, and keeps only the four variables that are needed to calculate the elo ratings.  The first variable is the number of days from a specific date.  This starting date in the \texttt{MatchResultselo} function is December 30, 2012, since this is the day of the first match in the base dataset.  The next two variables are the names of the two players, one listed as the "Player", and the other listed as the "Opponent".  The final variable is the result of the match.  The result of the match is a numeric variable, where a "1" represents the "Player" winning the match, and a "0" represents the "Opponent" winning the match.  Since the result of the match can be specified in one row, there is only one row per match in this new dataset.  Example output from the \texttt{MatchResultselo} function is shown below:
+
+<<>>=
+matchresults <- MatchResultselo(MatchStats[MatchStats$Year==2014,])
+head(matchresults)
+@
+
+The first column, Day, is the number of days from December 30, 2012.  Since the result is a "1" for each of the six matches, the player listed first in each row is the winner of the match.
+
+\subsection{Eloratings\_nostatus}
+
+Once the \texttt{MatchResultselo} function is applied to a dataset of match statistics, elo ratings can be calculated for any given time frame.  The first function that calculates elo ratings, the \texttt{Eloratings\_nostatus} function, requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 7, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  The \texttt{Eloratings\_nostatus} function initially finds the number of days between the inputted beginning date and December 30, 2012, as well as the number of days between the inputted end date and December 30, 2012.  Once the number of days is found, the third input representing the dataframe of match results is subsetted to only include matches between these two number of days.  The elo ratings for players that have played matches between these days is then calculated.  No status occurs in the function name, since the elo ratings are calculated only between the specified beginning and end date.  The \texttt{Eloratings\_nostatus} function returns a list of elo ratings, and a list of matches played between the beginning and end dates.  In the list of elo ratings, the first row corresponds to the highest rated player, and the last row corresponds to the lowest rated player.  An example of this function is shown below:
+
+<<echo=FALSE>>=
+library(PlayerRatings)
+head.list <- function(x, n = 6L, m = n, ...) {
+  stopifnot(length(n) == 1L & length(m) == 1L)
+  m <- ifelse(m < 0L, max(length(x) + m, 0L), min(m, length(x)))
+  return(lapply(x[seq_len(m)],
+                function(this_x) head(this_x, n = n, ...)))
+}
+@
+
+<<>>=
+elo <- Eloratings_nostatus("2014-03-01","2014-04-01",matchresults)[[1]][1]
+head.list(elo ,n=10)
+@
+
+\subsection{Eloratings\_status}
+
+The second function that calculates elo ratings, the \texttt{Eloratings\_status} function, also requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 7, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  
+
+\subsection{Eloratingstodf}
+
+a
+
+\subsection{Predict\_nostatus}
+
+a
+
+\subsection{Predict\_status}
+
+a
+
+\section{Case Studies}
+
+\subsection{2015 Miami Open}
+
+
+
+\section{Conclusion}
+
+\section{Future Work}
+
+Work on predicting a full tournament, where the website for the tournament is used in a function, and it returns probabilities for all the matchups.
+
+Work on Shiny app, and make it part of the \pkg{tennisR} package
+
+\section{Bibliography}
+
+\end{document}

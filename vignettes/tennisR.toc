@@ -1,0 +1,16 @@
+\contentsline {section}{Introduction}{2}{section*.2}
+\contentsline {subsection}{What is tennisR?}{2}{section*.3}
+\contentsline {subsection}{Data Collection}{2}{section*.4}
+\contentsline {section}{Available Functions}{3}{section*.5}
+\contentsline {subsection}{NewMatchStats}{3}{section*.6}
+\contentsline {subsection}{MatchResultselo}{4}{section*.7}
+\contentsline {subsection}{Eloratings\_nostatus}{5}{section*.8}
+\contentsline {subsection}{Eloratings\_status}{5}{section*.9}
+\contentsline {subsection}{Eloratingstodf}{6}{section*.10}
+\contentsline {subsection}{Predict\_nostatus}{6}{section*.11}
+\contentsline {subsection}{Predict\_status}{6}{section*.12}
+\contentsline {section}{Case Studies}{6}{section*.13}
+\contentsline {subsection}{2015 Miami Open}{6}{section*.14}
+\contentsline {section}{Conclusion}{6}{section*.15}
+\contentsline {section}{Future Work}{6}{section*.16}
+\contentsline {section}{Bibliography}{6}{section*.17}
