@@ -12,6 +12,6 @@ Eloratings_nostatus <- function(date1, date2, x){
   days1 <- date1 - beginningdate
   days2 <- date2 - beginningdate
   results.subset <- x[which((x$Day>=days1)&(x$Day<=days2)),]
-  elo.subset <- elo(results.subset, status=NULL, init=1, sort=T)
+  elo.subset <- elo(results.subset, status=NULL, init=0, sort=T)
   return(list(elo.subset, results.subset))
 }
