@@ -50,6 +50,14 @@ The base dataset in the \pkg{tennisR} package contains all matches for the 2013 
 
 <<results='hide', echo=FALSE>>=
 library(tennisR)
+library(stringr)
+library(scrapeR)
+library(PlayerRatings)
+library(lubridate)
+library(plyr)
+#library(dplyr)
+library(RCurl)
+library(ggplot2)
 @
 
 <<>>=
@@ -69,8 +77,7 @@ Most of the statistics also have a calculated difference associated with them.  
 
 Given the initial dataset of match statistics, graphs can be produced to look at trends among players, tournaments, or any variable in the dataset.  The following graph shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
 
-<<echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
-library(ggplot2)
+<<murray, echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
 ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
        aes(x=Date, y=First_Serve_Per)) + ylab("First Serve Percentage") +
        geom_line() + 
@@ -98,7 +105,7 @@ These match statistics can then easily be combined with the base dataset by usin
 
 \subsection{MatchResultselo}
 
-The rest of the functions in the \pkg{tennisR} package relate to player ratings.  The ATP World Tour does have an official player ranking list, but this ranking is based on a yearly summation of points.  The chosen rating system for the \pkg{tennisR} package, the elo rating system, allows ratings to be calculated between any given time period.  In the elo rating system, each player is assigned an initial score.  A player's score changes each match, depending on the result.  The winning player will "take away" points from the losing player, thus increasing his player rating.  The losing player will lose points, thus decreasing his player rating.  The difference in elo rating between two players determines how many points are "transferred" from the losing player to the winning player.  However, if there is a large gap in points between players, and the higher rated player wins the match, very few points will be lost by the losing player since he was expected to lose the match.  If the lower rated player actually did win the match, many points would be transferred from the losing player to the winning player, thus increasing the player rating for the winner substantially.
+The rest of the functions in the \pkg{tennisR} package relate to player ratings.  The ATP World Tour does have an official player ranking list, but this ranking is based on a yearly summation of points.  The chosen rating system for the \pkg{tennisR} package, the elo rating system, allows ratings to be calculated between any given time period.  In the elo rating system, each player is assigned an initial rating.  A player's rating changes each match, depending on the result.  The winning player will "take away" points from the losing player, thus increasing his player rating.  The losing player will lose points, thus decreasing his player rating.  The difference in elo rating between two players determines how many points are "transferred" from the losing player to the winning player.  However, if there is a large gap in points between players, and the higher rated player wins the match, very few points will be lost by the losing player since he was expected to lose the match.  If the lower rated player actually did win the match, many points would be transferred from the losing player to the winning player, thus increasing the player rating for the winner substantially.
 
 The \pkg{PlayerRatings} package by Alec Stephenson has a built in function that calculates elo ratings.  Since the elo rating system is only based on the result of each match, the full dataset of match statistics must be modified.  The \texttt{MatchResultselo} function in the \pkg{tennisR} package takes a full dataset of match statistics, and keeps only the four variables that are needed to calculate the elo ratings.  The first variable is the number of days from a specific date.  This starting date in the \texttt{MatchResultselo} function is December 30, 2012, since this is the day of the first match in the base dataset.  The next two variables are the names of the two players, one listed as the "Player", and the other listed as the "Opponent".  The final variable is the result of the match.  The result of the match is a numeric variable, where a "1" represents the "Player" winning the match, and a "0" represents the "Opponent" winning the match.  Since the result of the match can be specified in one row, there is only one row per match in this new dataset.  Example output from the \texttt{MatchResultselo} function is shown below:
 
@@ -111,10 +118,9 @@ The first column, Day, is the number of days from December 30, 2012.  Since the 
 
 \subsection{Eloratings\_nostatus}
 
-Once the \texttt{MatchResultselo} function is applied to a dataset of match statistics, elo ratings can be calculated for any given time frame.  The first function that calculates elo ratings, the \texttt{Eloratings\_nostatus} function, requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 7, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  The \texttt{Eloratings\_nostatus} function initially finds the number of days between the inputted beginning date and December 30, 2012, as well as the number of days between the inputted end date and December 30, 2012.  Once the number of days is found, the third input representing the dataframe of match results is subsetted to only include matches between these two number of days.  The elo ratings for players that have played matches between these days is then calculated.  No status occurs in the function name, since the elo ratings are calculated only between the specified beginning and end date.  The \texttt{Eloratings\_nostatus} function returns a list of elo ratings, and a list of matches played between the beginning and end dates.  In the list of elo ratings, the first row corresponds to the highest rated player, and the last row corresponds to the lowest rated player.  An example of this function is shown below:
+Once the \texttt{MatchResultselo} function is applied to a dataset of match statistics, elo ratings can be calculated for any given time frame.  The first function that calculates elo ratings, the \texttt{Eloratings\_nostatus} function, requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 7, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  The \texttt{Eloratings\_nostatus} function initially finds the number of days between the inputted beginning date and December 30, 2012, as well as the number of days between the inputted end date and December 30, 2012.  Once the number of days is found, the third input representing the dataframe of match results is subsetted to only include matches between these two number of days.  The elo ratings for players that have played matches between these days is then calculated, given an initial rating of zero for each player.  No status occurs in the function name, since the elo ratings are calculated only between the specified beginning and end date.  The \texttt{Eloratings\_nostatus} function returns a list of elo ratings, and a list of matches played between the beginning and end dates.  In the list of elo ratings, the first row corresponds to the highest rated player, and the last row corresponds to the lowest rated player.  An example of this function is shown below:
 
 <<echo=FALSE>>=
-library(PlayerRatings)
 head.list <- function(x, n = 6L, m = n, ...) {
   stopifnot(length(n) == 1L & length(m) == 1L)
   m <- ifelse(m < 0L, max(length(x) + m, 0L), min(m, length(x)))
@@ -124,25 +130,29 @@ head.list <- function(x, n = 6L, m = n, ...) {
 @
 
 <<>>=
-elo <- Eloratings_nostatus("2014-03-01","2014-04-01",matchresults)[[1]][1]
-head.list(elo ,n=10)
+elo <- Eloratings_nostatus("2014-03-01","2014-04-01",matchresults)
+head.list(elo[[1]][1] ,n=10)
 @
+
+The Lag column represents the number of days from the end date since a player last played a match.
 
 \subsection{Eloratings\_status}
 
-The second function that calculates elo ratings, the \texttt{Eloratings\_status} function, also requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 7, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  
+The second function that calculates elo ratings, the \texttt{Eloratings\_status} function, also requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 15, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  Instead of calculating elo ratings for matches only within the specified dates, the \texttt{Eloratings\_status} function also uses completed matches up to one month prior to the beginning date specified in the input.  Elo ratings are calculated first for these "prior" matches, and these ratings serve as the "status" for the elo ratings between the two specified dates.  This means that the elo ratings for these prior matches now serve as the initial rating when calculating the elo ratings between the two specified dates.  Any player for which elo ratings were calculated for the "prior" matches, would also show up in the overall elo ratings between the two specified dates, regardless if the player actually did play a match between those dates.  Any players who didn't play in any of the prior matches would receive an initial rating of zero, similar to the previous function.  Updating the "status" of the elo ratings up to one month back can account for injuries to players, or players who missed matches due to other reasons.  The \texttt{Eloratings\_status} function returns a list of elo ratings, and a list of matches played between the beginning and end dates, plus up to one month prior to the beginning date.  The following code shows an example for the \texttt{Eloratings\_status} function using the same inputs as the example for the previous function.
+
+<<>>=
+elo <- Eloratings_status("2014-03-01","2014-04-01",matchresults)
+head.list(elo[[1]][1] ,n=10)
+@
+
+This top ten list of players based on elo ratings shows that Tomas Berdych is the top rated player, instead of Novak Djokovic.  The number of wins, losses, and total games are the same for both sets of ratings, because these are the matches played between March 1, 2014 and April 1, 2014.  The difference in the ratings is due to the fact that the \texttt{Eloratings\_status} function uses prior match results from February 1, 2014 to February 28, 2014 to set the initial ratings.
 
 \subsection{Eloratingstodf}
 
-a
+The \texttt{Eloratingstodf} function is a very simple function, but is useful in analyzing elo ratings.  Since the elo ratings are returned in list form, which can be difficult to work with, this function converts the elo ratings into a dataframe.  The dataframe has the same number of variables as the elo ratings returned from the above functions, but it is now easier to view and graph.
 
-\subsection{Predict\_nostatus}
+\subsection{Predict}
 
-a
-
-\subsection{Predict\_status}
-
-a
 
 \section{Case Studies}
 
