@@ -4,7 +4,7 @@
 \alias{Predict}
 \title{Makes a prediction based on elo ratings for a given time period.}
 \usage{
-Predict(player1, player2, elo, results)
+Predict(player1, player2, elo, games, results)
 }
 \arguments{
 \item{player1}{First player in the head to head matchup.}
@@ -12,6 +12,10 @@ Predict(player1, player2, elo, results)
 \item{player2}{Second player in the head to head matchup.}
 
 \item{elo}{A set of elo ratings, in the original elo ratings format.}
+
+\item{games}{Total number of games played by either player.}
+
+\item{results}{A subset of match results (the second list returned from either elo ratings functions)}
 }
 \value{
 A probability that player 1 will win the tennis match.
