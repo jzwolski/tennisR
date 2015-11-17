@@ -80,9 +80,9 @@ NewMatchStats <- function(x){
     files.1 <- h1$links()[str_detect(h1$links(), "match-stats")]
     
     #Add the beginning of the url to get the full web address
-    files.3 <- paste("http://www.atpworldtour.com", files.1, sep="")
-    firstweb <- substr(files.3, 1, nchar(files.3)-23)
-    files.3 <- paste(firstweb, "/match-stats", sep="")
+    files.2 <- paste("http://www.atpworldtour.com", files.1, sep="")
+    firstweb <- substr(files.2, 1, nchar(files.2)-23)
+    files.2 <- paste(firstweb, "/match-stats", sep="")
     
     #Pull out text from website
     text <- x[j]
@@ -119,9 +119,9 @@ NewMatchStats <- function(x){
     
     #Scrape the website for all the match facts for a given tournament#
     eachtourn = NULL
-    for (i in 1:length(files.3))
+    for (i in 1:length(files.2))
     {
-      table <- getURL(files.3[i])
+      table <- getURL(files.2[i])
       table <- readLines(tc <- textConnection(table)); close(tc)
             
       matchtable <- data.frame(matrix(NA, nrow = 2, ncol = 1))
@@ -426,7 +426,7 @@ NewMatchStats <- function(x){
                                                           "Round of 16", "Quarter-Finals", "Semi-Finals", "Finals"))
     }
     eachtourn <- eachtourn[order(eachtourn$Round),]
-    eachtourn$MatchID <- rep(1:length(files.3), each=2)
+    eachtourn$MatchID <- rep(1:length(files.2), each=2)
     if(j == 1){
       additionalMatchStats <- eachtourn
     } else {
@@ -439,5 +439,61 @@ NewMatchStats <- function(x){
   additionalMatchStats$Opponent <- as.character(additionalMatchStats$Opponent)
   additionalMatchStats[is.na(additionalMatchStats)] <- 0
   
+  for(k in 1:nrow(additionalMatchStats)){
+    if(additionalMatchStats$Player[k]=="Pablo And&#250;jar"){
+      additionalMatchStats$Player[k]="Pablo Andujar"
+    }
+    if(additionalMatchStats$Opponent[k]=="Pablo And&#250;jar"){
+      additionalMatchStats$Opponent[k]="Pablo Andujar"
+    }
+    if(additionalMatchStats$Winner[k]=="Pablo And&#250;jar"){
+      additionalMatchStats$Winner[k]="Pablo Andujar"
+    }
+    if(additionalMatchStats$Player[k]=="Nicol&#225;s Almagro"){
+      additionalMatchStats$Player[k]="Nicolas Almagro"
+    }
+    if(additionalMatchStats$Opponent[k]=="Nicol&#225;s Almagro"){
+      additionalMatchStats$Opponent[k]="Nicolas Almagro"
+    }
+    if(additionalMatchStats$Winner[k]=="Nicol&#225;s Almagro"){
+      additionalMatchStats$Winner[k]="Nicolas Almagro"
+    }
+    if(additionalMatchStats$Player[k]=="Mart&#237;n Alund"){
+      additionalMatchStats$Player[k]="Martin Alund"
+    }
+    if(additionalMatchStats$Opponent[k]=="Mart&#237;n Alund"){
+      additionalMatchStats$Opponent[k]="Martin Alund"
+    }
+    if(additionalMatchStats$Winner[k]=="Mart&#237;n Alund"){
+      additionalMatchStats$Winner[k]="Martin Alund"
+    }
+    if(additionalMatchStats$Player[k]=="Guillermo Garc&#237;a-L&#243;pez"){
+      additionalMatchStats$Player[k]="Guillermo Garcia-Lopez"
+    }
+    if(additionalMatchStats$Opponent[k]=="Guillermo Garc&#237;a-L&#243;pez"){
+      additionalMatchStats$Opponent[k]="Guillermo Garcia-Lopez"
+    }
+    if(additionalMatchStats$Winner[k]=="Guillermo Garc&#237;a-L&#243;pez"){
+      additionalMatchStats$Winner[k]="Guillermo Garcia-Lopez"
+    }
+    if(additionalMatchStats$Player[k]=="Feliciano L&#243;pez"){
+      additionalMatchStats$Player[k]="Feliciano Lopez"
+    }
+    if(additionalMatchStats$Opponent[k]=="Feliciano L&#243;pez"){
+      additionalMatchStats$Opponent[k]="Feliciano Lopez"
+    }
+    if(additionalMatchStats$Winner[k]=="Feliciano L&#243;pez"){
+      additionalMatchStats$Winner[k]="Feliciano Lopez"
+    }
+    if(additionalMatchStats$Player[k]=="Juan M&#243;naco"){
+      additionalMatchStats$Player[k]="Juan Monaco"
+    }
+    if(additionalMatchStats$Opponent[k]=="Juan M&#243;naco"){
+      additionalMatchStats$Opponent[k]="Juan Monaco"
+    }
+    if(additionalMatchStats$Winner[k]=="Juan M&#243;naco"){
+      additionalMatchStats$Winner[k]="Juan Monaco"
+    }
+  }
   return(additionalMatchStats)
 }
