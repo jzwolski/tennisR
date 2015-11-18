@@ -3,6 +3,7 @@
 \setlength{\parindent}{0pt} % Remove indent at new paragraphs
 \setcounter{secnumdepth}{0}  % Remove section numbering at certain depth
 \usepackage[left=3cm,top=3cm,bottom=3.5cm,right=3cm]{geometry} % For easy document margins
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 
 \newcommand{\code}[1]{{\texttt{#1}}}
 \newcommand{\pkg}[1]{{\texttt{#1}}}
