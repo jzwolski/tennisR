@@ -1,0 +1,406 @@
+\documentclass{article}
+
+\setlength{\parindent}{0pt} % Remove indent at new paragraphs
+\setcounter{secnumdepth}{0}  % Remove section numbering at certain depth
+\usepackage[left=3cm,top=3cm,bottom=3.5cm,right=3cm]{geometry} % For easy document margins
+
+\newcommand{\code}[1]{{\texttt{#1}}}
+\newcommand{\pkg}[1]{{\texttt{#1}}}
+\newcommand{\class}[1]{{\textit{#1}}}
+\newcommand{\R}{{\normalfont\textsf{R }}{}}
+
+\begin{document}
+
+
+\title{Vignette: All About Tennis with tennisR}
+\author{Justin Zwolski}
+\date{\pkg{tennisR} version \Sexpr{packageDescription("tennisR")[["Version"]]} , \Sexpr{Sys.Date()} }
+\maketitle
+
+
+\tableofcontents
+\setcounter{footnote}{1} 
+\footnotetext{This \LaTeX\ vignette document is created using the \R function \code{Sweave} on the \R package \pkg{tennisR}. It is automatically downloaded with the package and can be accessed with the \R command \code{vignette("tennisR")}.}  
+\newpage
+\setlength{\parskip}{10pt} % Inter-paragraph spacing
+
+\section{Introduction}
+
+\subsection{What is tennisR?} 
+
+Analytics is becoming more and more popular in tennis.  Statistics from each match are being collected, and can be used to find ways to improve a player's performance.  The \pkg{tennisR} package provides an easy way to put match statistics into a database form that can be used for analysis.  This package also can compute player ratings for any given time period, and make predictions based on these ratings.  The available functions in the \pkg{tennisR} package and a detailed explanation of their usage will be discussed in this vignette.
+
+\subsection{Data Collection}
+
+The \pkg{tennisR} package provides an initial dataset of match statistics.  These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
+
+Since the statistics for each match are displayed by a unique web address, within each tournament, a \texttt{for} loop was used to read in all the match statistics.  The index of the \texttt{for} loop is dependent on how many tournaments are used.  For example, if match statistics were gathered from ten tournaments, the \texttt{for} loop would run from one to ten.  Once inside the \texttt{for} loop, the following set of code obtains all the links on any given tournament draw page:
+
+<<eval=FALSE>>=
+getLinks = function() { 
+    links = character() 
+    list(a = function(node, ...) { 
+      links <<- c(links, xmlGetAttr(node, "href"))
+      node 
+    }, 
+    links = function()links)
+}
+
+h1 <- getLinks()
+htmlTreeParse(file = x[j],
+              handlers = h1, useInternalNodes = TRUE)
+@
+
+The letter j represents the counter for the \texttt{for} loop.  Therefore, x[j] refers to the jth tournament website from a list of all tournament websites for which the match statistics will be used.  The next step is to subset this list of links to only include links for the individual matches.  This can be done by the following code:
+
+<<eval=FALSE>>==
+files.1 <- h1$links()[str_detect(h1$links(), "match-stats")]
+@
+
+An example of a link obtained for an individual match is shown below:
+
+<<eval=FALSE>>=
+"/en/tournaments/pbz-zagreb-indoors/2276/2013/match-stats/C977/Z189/live/MS008/match-stats"
+@
+
+Since this link is not the full website for an individual match, the beginning of the full url must be added.  This section of the url is the same for all matches, and can be added with the following code:
+
+<<eval=FALSE>>=
+files.2 <- paste("http://www.atpworldtour.com", files.1, sep="")
+@
+
+Once the two sections of the url are combined together, all the websites for the individual match statistics are known.  However, R has difficulty reading these websites, and the following code must be used to modify the web addresses:
+
+<<eval=FALSE>>=
+firstweb <- substr(files.2, 1, nchar(files.2)-23)
+files.2 <- paste(firstweb, "/match-stats", sep="")
+@
+
+The websites are the same as before, but now R has no problem reading them.
+
+Each tournament website is then broken down in text form to determine the beginning and end dates for the tournament, and the size of the draw.
+
+<<eval=FALSE>>=
+text <- x[j]
+text <- htmlToText(text)
+
+date <- gsub(".*([2][0][0-1][0-9].[0-1][0-9].[0-3][0-9] - 
+             [2][0][0-1][0-9].[0-1][0-9].[0-3][0-9]).*", "\\1", text)
+begdate <- as.Date(substr(date, 1, 10), "%Y.%m.%d")
+enddate <- as.Date(substr(date, 14, 23), "%Y.%m.%d")
+    
+lengthtourn <- enddate-begdate
+    
+draw <- gsub(".*Download PDF","\\1",text)
+draw <- gsub("\r","\\1",draw)
+draw <- gsub("\t","\\1",draw)
+draw <- gsub("\n","\\1",draw)
+draw <- substr(draw,1,10)
+draw <- gsub(" ", "",draw)
+draw <- gsub("R","",draw)
+draw <- as.numeric(draw)
+@
+
+Since the specific date of each match is not displayed, the length of the tournament is calculated and used with the number of rounds in the tournament to determine the number of days between matches.  The number of days between matches is then used to estimate the date of each match.
+
+Within the \texttt{for} loop for each tournament, another \texttt{for} loop is created that steps through each individual match within a tournament.  This \text{for} loop uses the results stored in files.2 for each tournament.  Using the \pkg{RCurl} package, the source code for each individual match can be found.
+
+<<eval=FALSE>>=
+table <- getURL(files.2[i])
+table <- readLines(tc <- textConnection(table)); close(tc)
+
+table <- as.data.frame(table)
+table$table <- as.character(table$table)
+@
+
+An empty dataframe is then created, which serves as the template for the match statistics.
+
+<<eval=FALSE>>=
+matchtable <- data.frame(matrix(NA, nrow = 2, ncol = 1))
+@
+
+Once this dataframe is created, the source code is used to manually input the values for each variable into the dataframe.  An example is shown in the following code, where the first serve percentage for both players are put into the matchtable dataframe.
+
+<<eval=FALSE>>=
+First_Serve_Per <- table[grep("FirstServePercentage", table$table), ]
+matchtable$First_Serve_Per <- as.numeric(gsub(":","",
+                                              substr(First_Serve_Per[1],31,
+                                                     nchar(First_Serve_Per[1])-3)))
+matchtable$First_Serve_Per[[2]] <- as.numeric(gsub(":","",
+                                                   substr(First_Serve_Per[3],31,
+                                                          nchar(First_Serve_Per[3])-3)))
+@
+
+The date for each match is found by multiplying the number of days between matches by a certain factor, and then adding the beginning date of the tournament.  The draw size, and the round within each different draw size affects the date of each match.
+
+After all the match information and statistics is read into the matchtable dataframe, the matchtable dataframe is renamed and the data is stored.  The inner\texttt{for} loop then restarts, by using the next website for an individual match, in the same tournament.  All the match statistics are then found for this next match, and added to the match statistics for the previous match.  Once this inner \texttt{for} loop is complete, the outer \texttt{for} loop then restarts, by using the next website for a tournament.  The process is repeated for each new tournament.
+
+The base dataset in the \pkg{tennisR} package contains all matches for the 2013 and 2014 full seasons, as well as matches in 2015 up to and including the U.S. Open, for a total of 7,327 matches.  Every match is given two rows, one row of match statistics for each player.  There are a total of 46 variables in the dataset.
+
+<<message=FALSE, warning=FALSE, echo=FALSE>>=
+library(tennisR)
+library(stringr)
+library(scrapeR)
+library(PlayerRatings)
+library(lubridate)
+library(plyr)
+#library(dplyr)
+library(RCurl)
+library(ggplot2)
+@
+
+<<>>=
+data(MatchStats)
+MatchStats[c(1,2),c(1:8)]
+dim(MatchStats)
+@
+
+The first few variables provide information about the specific tournament and match.  The majority of the variables are the match statistics, which include serving, returning, and overall statistics.  An example of one of the serving statistics is first serve percentage, the percentage of first serves in play.
+
+<<echo=FALSE>>=
+MatchStats[c(1,2),c(7,8,14,15)]
+@
+
+Most of the statistics also have a calculated difference associated with them.  This is the difference in percentage of a statistic between two players in the same match.
+
+Given the initial dataset of match statistics, graphs can be produced to look at trends among players, tournaments, or any variable in the dataset.  The following graph shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
+
+<<murray, echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
+ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
+       aes(x=Date, y=First_Serve_Per)) + ylab("First Serve Percentage") +
+       geom_line() + 
+       geom_point(data=MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
+                  aes(x=Date, y=First_Serve_Per), size=4)
+@
+
+\section{Available Functions}
+
+There are functions available in the \pkg{tennisR} package regarding match statistics, elo ratings, and predictions.  Each function is covered in detail, showing some examples, and the required format for the function inputs.
+
+\subsection{NewMatchStats}
+
+The \texttt{NewMatchStats} function allows the user to expand the original dataset in the package.  While the base dataset only contains matches from 2013 to the 2015 U.S. Open, matches from any tournament can be added to this dataset via the \texttt{NewMatchStats} function.  There is only one input to the \texttt{NewMatchStats} function.  This input is the website for a tournament.  The input can also include multiple websites.  In this case, the websites would need to be grouped together in a vector in order for the function to recognize each individual website.  As described above, the \pkg{tennisR} package uses data from the ATP World Tour website.  Therefore, the \texttt{NewMatchStats} function only has the ability to read tournament information from ATP websites.  
+
+For example, to create a dataset of match statistics for the 2015 ATP World Tour Masters 1000 Series tournament in Shanghai, which occurred after the 2015 U.S. Open, the following input to the \texttt{NewMatchStats} function would be needed:
+
+<<eval=FALSE>>=
+NewMatchStats("http://www.atpworldtour.com/en/scores/archive/shanghai/5014/2015/draws")
+@
+
+Running this line of code would produce a dataframe of match statistics just for the tournament in Shanghai.  The dimensions of this dataframe are 110 by 46.  The number of variables is the same number as in the original dataset, which is to be expected.  Since two rows are used for each match, 55 matches were played during the tournament in Shanghai.
+
+These match statistics can then easily be combined with the base dataset by using the rbind command.
+
+\subsection{MatchResultselo}
+
+The rest of the functions in the \pkg{tennisR} package relate to player ratings.  The ATP World Tour does have an official player ranking list, but this ranking is based on a yearly summation of points.  The chosen rating system for the \pkg{tennisR} package, the elo rating system, allows ratings to be calculated between any given time period.  In the elo rating system, each player is assigned an initial rating.  A player's rating changes each match, depending on the result.  The winning player will "take away" points from the losing player, thus increasing his player rating.  The losing player will lose points, thus decreasing his player rating.  The difference in elo rating between two players determines how many points are "transferred" from the losing player to the winning player.  However, if there is a large gap in points between players, and the higher rated player wins the match, very few points will be lost by the losing player since he was expected to lose the match.  If the lower rated player actually did win the match, many points would be transferred from the losing player to the winning player, thus increasing the player rating for the winner substantially.
+
+The \pkg{PlayerRatings} package by Alec Stephenson has a built in function that calculates elo ratings.  Since the elo rating system is only based on the result of each match, the full dataset of match statistics must be modified.  The \texttt{MatchResultselo} function in the \pkg{tennisR} package takes a full dataset of match statistics, and keeps only the four variables that are needed to calculate the elo ratings.  The first variable is the number of days from a specific date.  This starting date in the \texttt{MatchResultselo} function is December 30, 2012, since this is the day of the first match in the base dataset.  The next two variables are the names of the two players, one listed as the "Player", and the other listed as the "Opponent".  The final variable is the result of the match.  The result of the match is a numeric variable, where a "1" represents the "Player" winning the match, and a "0" represents the "Opponent" winning the match.  Since the result of the match can be specified in one row, there is only one row per match in this new dataset.  Example output from the \texttt{MatchResultselo} function is shown below:
+
+<<>>=
+matchresults <- MatchResultselo(MatchStats[MatchStats$Year==2014,])
+head(matchresults)
+@
+
+The first column, Day, is the number of days from December 30, 2012.  Since the result is a "1" for each of the six matches, the player listed first in each row is the winner of the match.
+
+\subsection{Eloratings\_nostatus}
+
+Once the \texttt{MatchResultselo} function is applied to a dataset of match statistics, elo ratings can be calculated for any given time frame.  The first function that calculates elo ratings, the \texttt{Eloratings\_nostatus} function, requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 7, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  The \texttt{Eloratings\_nostatus} function initially finds the number of days between the inputted beginning date and December 30, 2012, as well as the number of days between the inputted end date and December 30, 2012.  Once the number of days is found, the third input representing the dataframe of match results is subsetted to only include matches between these two number of days.  The elo ratings for players that have played matches between these days is then calculated, given an initial rating of zero for each player.  No status occurs in the function name, since the elo ratings are calculated only between the specified beginning and end date.  The \texttt{Eloratings\_nostatus} function returns a list of elo ratings, and a list of matches played between the beginning and end dates.  In the list of elo ratings, the first row corresponds to the highest rated player, and the last row corresponds to the lowest rated player.  An example of this function is shown below:
+
+<<echo=FALSE>>=
+head.list <- function(x, n = 6L, m = n, ...) {
+  stopifnot(length(n) == 1L & length(m) == 1L)
+  m <- ifelse(m < 0L, max(length(x) + m, 0L), min(m, length(x)))
+  return(lapply(x[seq_len(m)],
+                function(this_x) head(this_x, n = n, ...)))
+}
+@
+
+<<>>=
+elo <- Eloratings_nostatus("2014-03-01","2014-04-01",matchresults)
+head.list(elo[[1]][1] ,n=10)
+@
+
+The Lag column represents the number of days from the end date since a player last played a match.
+
+\subsection{Eloratings\_status}
+
+The second function that calculates elo ratings, the \texttt{Eloratings\_status} function, also requires three inputs.  The first two inputs are the beginning and end dates for the range in which the elo ratings will be calculated.  These two dates must be in a specific format, such as 2015-07-15, which would represent July 15, 2015.  The third input is a dataframe of match results after the \texttt{MatchResultselo} function has been run.  Instead of calculating elo ratings for matches only within the specified dates, the \texttt{Eloratings\_status} function also uses completed matches up to one month prior to the beginning date specified in the input.  Elo ratings are calculated first for these "prior" matches, and these ratings serve as the "status" for the elo ratings between the two specified dates.  This means that the elo ratings for these prior matches now serve as the initial rating when calculating the elo ratings between the two specified dates.  Any player for which elo ratings were calculated for the "prior" matches, would also show up in the overall elo ratings between the two specified dates, regardless if the player actually did play a match between those dates.  Any players who didn't play in any of the prior matches would receive an initial rating of zero, similar to the previous function.  Updating the "status" of the elo ratings up to one month back can account for injuries to players, or players who missed matches due to other reasons.  The \texttt{Eloratings\_status} function returns a list of elo ratings, and a list of matches played between the beginning and end dates, plus up to one month prior to the beginning date.  The following code shows an example for the \texttt{Eloratings\_status} function using the same inputs as the example for the previous function.
+
+<<>>=
+elo <- Eloratings_status("2014-03-01","2014-04-01",matchresults)
+head.list(elo[[1]][1] ,n=10)
+@
+
+This top ten list of players based on elo ratings shows that Tomas Berdych is the top rated player, instead of Novak Djokovic.  The number of wins, losses, and total games are the same for both sets of ratings, because these are the matches played between March 1, 2014 and April 1, 2014.  The difference in the ratings is due to the fact that the \texttt{Eloratings\_status} function uses prior match results from February 1, 2014 to February 28, 2014 to set the initial ratings.
+
+\subsection{Eloratingstodf}
+
+The \texttt{Eloratingstodf} function is a very simple function, but is useful in analyzing elo ratings.  Since the elo ratings are returned in list form, which can be difficult to work with, this function converts the elo ratings into a dataframe.  The dataframe has the same number of variables as the elo ratings returned from the above functions, but it is now easier to view and graph.
+
+\subsection{Predict}
+
+The \texttt{Predict} function applies the elo ratings to determine predictions for match results.  The first two inputs are the two players in the match for which the probability will be calculated for.  The next input is a list of elo ratings.  It is best to use the list of elo ratings directly found from one of the two elo ratings functions.  The next input is a numeric variable that represents the total number of games played by either player.  If the number of games played for a specific player between the two specified dates to create the elo ratings is less than this input, the probability for the given match will not be found, as there are too few match results to obtain an accurate prediction.  A reasonable value to use for this input is five, as five or more matches should give a fairly good representation of a player's performance.  The final input to the \texttt{Predict} function is a list of match results for which the given set of elo ratings was calculated from.  It is best to use the list of match results directly found from one of the two elo ratings functions.  These match results are used to assign probabilities to matches that do not meet the criteria of the number of games played input value.   The \texttt{Predict} function returns a dataframe with player 1, player 2, and the probability of player 1 winning the match.
+
+To show an example of the \texttt{Predict} funciton, the elo ratings calculated in the example for the \texttt{Eloratings\_status} function are used.  Based on the these ratings, a prediction can be made between Andy Murray and Roger Federer using the following code:
+
+<<>>=
+Predict("Andy Murray", "Roger Federer", elo[[1]], 5, elo[[2]])
+@
+
+Multiple matches can also be predicted at once using the \texttt{Predict} function.  In this case, the first two inputs must be in vector form with the same number of players in both vectors.
+
+\section{Case Study - 2015 Miami Open}
+
+The 2015 Miami Open tournament is used as an example to demonstrate applying the elo ratings and prediction functions to an actual tennis tournament.  The following code calculates probabilities for each match played throughout the tournament.
+
+The beginning date for the 2015 Miami Open was March 25, 2015.  To allow for many matches to be used in calculating the elo ratings, the ratings were found between March 24, 2014 and March 24, 2015.  First, the base dataset in the \pkg{tennisR} package was used as the input to the \texttt{MatchResultselo} function to prepare for calculating the elo ratings.
+
+<<>>=
+matchresults <- MatchResultselo(MatchStats)
+@
+
+Next, the \texttt{Eloratings\_nostatus} function was used to find the elo ratings between March 24, 2014 and March 24, 2015.
+
+<<>>=
+eloratings <- Eloratings_nostatus("2014-03-24","2015-03-24",matchresults)
+@
+
+Next, the vectors for the first two inputs in the \texttt{Predict} function were created.  The following vector shows all the players who are represented as Player 1 in their respective matches.
+
+<<>>=
+player1 <- c("Paolo Lorenzi","Malek Jaziri","Lleyton Hewitt","Ricardas Berankis",
+             "Mikhail Kukushkin","Michael Berrer","Sam Groth","Jiri Vesely",
+             "Andrey Golubev","Marcos Baghdatis","Andreas Haider-Maurer","Jerzy Janowicz",
+             "Vasek Pospisil","Andrey Rublev","Ryan Harrison","Pablo Andujar",
+             "Thanasi Kokkinakis","Joao Sousa","Go Soeda","Dominic Thiem",
+             "Victor Estrella Burgos","Jarkko Nieminen","Kyle Edmund","Donald Young",
+             "Marcel Granollers","Denis Istomin","Filip Krajinovic","Tim Smyczek",
+             "Ruben Bemelmans","Jan-Lennard Struff","Damir Dzumhur","Sergiy Stakhovsky",
+             "Novak Djokovic","Steve Darcis","Pablo Cuevas","Alexandr Dolgopolov",
+             "Gilles Simon","Alejandro Falla","Lukas Rosol","Federico Delbonis",
+             "Kei Nishikori","Simone Bolelli","David Goffin","Jerzy Janowicz",
+             "Grigor Dimitrov","Andrey Rublev","Jeremy Chardy","Teymuraz Gabashvili",
+             "Stan Wawrinka","Albert Ramos-Vinolas","Fabio Fognini","Dominic Thiem",
+             "Kevin Anderson","Jarkko Nieminen","Santiago Giraldo","Donald Young",
+             "Tomas Berdych","Austin Krajicek","Gael Monfils","Tim Smyczek",
+             "Ernests Gulbis","Jan-Lennard Struff","Fernando Verdasco","Nicolas Almagro",
+             "Novak Djokovic","Thomaz Bellucci","Gilles Simon","Lukas Rosol",
+             "Kei Nishikori","David Goffin","Grigor Dimitrov","Jeremy Chardy",
+             "Stan Wawrinka","Jack Sock","Kevin Anderson","Santiago Giraldo",
+             "Tomas Berdych","Gael Monfils","Juan Monaco","Fernando Verdasco",
+             "Novak Djokovic","Gilles Simon","Kei Nishikori","John Isner",
+             "Adrian Mannarino","Kevin Anderson","Tomas Berdych","Juan Monaco",
+             "Novak Djokovic","Kei Nishikori","Dominic Thiem","Tomas Berdych",
+             "Novak Djokovic","Andy Murray","Novak Djokovic")
+@
+
+The following vector shows all the players who are represented as Player 2 in their respective matches.
+
+<<>>=
+player2 <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov",
+             "Steve Johnson","Alejandro Falla","Alexander Zverev","Federico Delbonis",
+             "Mikhail Youzhny","Simone Bolelli","Borna Coric","Edouard Roger-Vasselin",
+             "Juan Martin Del Potro","Pablo Carreno Busta","Jurgen Melzer","Teymuraz Gabashvili",
+             "Carlos Berlocq","Albert Ramos-Vinolas","Jack Sock","Diego Schwartzman",
+             "Sam Querrey","Marinko Matosevic","Robin Haase","Yen-Hsun Lu",
+             "Hyeon Chung","Austin Krajicek","Dusan Lajovic","Adrian Menendez-Maceiras",
+             "Juan Monaco","Benjamin Becker","James Duckworth","Nicolas Almagro",
+             "Martin Klizan","Gilles Muller","Thomaz Bellucci","Tommy Robredo",
+             "Mikhail Kukushkin","Ivo Karlovic","Alexander Zverev","David Ferrer",
+             "Mikhail Youzhny","Viktor Troicki","Borna Coric","Roberto Bautista Agut",
+             "Vasek Pospisil","John Isner","Jurgen Melzer","Milos Raonic",
+             "Carlos Berlocq","Adrian Mannarino","Jack Sock","Feliciano Lopez",
+             "Sam Querrey","Leonardo Mayer","Robin Haase","Andy Murray",
+             "Hyeon Chung","Bernard Tomic","Filip Krajinovic","Jo-Wilfried Tsonga",
+             "Juan Monaco","Guillermo Garcia-Lopez","James Duckworth","Rafael Nadal",
+             "Steve Darcis","Alexandr Dolgopolov","Alejandro Falla","David Ferrer",
+             "Viktor Troicki","Jerzy Janowicz","John Isner","Milos Raonic",
+             "Adrian Mannarino","Dominic Thiem","Leonardo Mayer","Andy Murray",
+             "Bernard Tomic","Jo-Wilfried Tsonga","Guillermo Garcia-Lopez","Rafael Nadal",
+             "Alexandr Dolgopolov","David Ferrer","David Goffin","Milos Raonic",
+             "Dominic Thiem","Andy Murray","Gael Monfils","Fernando Verdasco",
+             "David Ferrer","John Isner","Andy Murray","Juan Monaco",
+             "John Isner","Tomas Berdych","Andy Murray")
+@
+
+Next, the \texttt{Predict} function was used to find the probabilities of all the matches for the 2015 Miami Open.
+
+<<>>=
+predictions <- Predict(player1, player2, eloratings[[1]], 5, eloratings[[2]])
+head(predictions)
+@
+
+Next, the predictions are now compared to the actual results.  The following vector shows the winning players for each match.
+
+<<>>=
+Winner <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov",
+            "Mikhail Kukushkin","Alejandro Falla","Alexander Zverev","Federico Delbonis",
+            "Mikhail Youzhny","Simone Bolelli","Borna Coric","Jerzy Janowicz",
+            "Vasek Pospisil","Andrey Rublev","Jurgen Melzer","Teymuraz Gabashvili",
+            "Carlos Berlocq","Albert Ramos-Vinolas","Jack Sock","Dominic Thiem",
+            "Sam Querrey","Jarkko Nieminen","Robin Haase","Donald Young",
+            "Hyeon Chung","Austin Krajicek","Filip Krajinovic","Tim Smyczek",
+            "Juan Monaco","Jan-Lennard Struff","James Duckworth","Nicolas Almagro",
+            "Novak Djokovic","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov",
+            "Gilles Simon","Alejandro Falla","Lukas Rosol","David Ferrer",
+            "Kei Nishikori","Viktor Troicki","David Goffin","Jerzy Janowicz",
+            "Grigor Dimitrov","John Isner","Jeremy Chardy","Milos Raonic",
+            "Stan Wawrinka","Adrian Mannarino","Jack Sock","Dominic Thiem",
+            "Kevin Anderson","Leonardo Mayer","Santiago Giraldo","Andy Murray",
+            "Tomas Berdych","Bernard Tomic","Gael Monfils","Jo-Wilfried Tsonga",
+            "Juan Monaco","Guillermo Garcia-Lopez","Fernando Verdasco","Rafael Nadal",
+            "Novak Djokovic","Alexandr Dolgopolov","Gilles Simon","David Ferrer",
+            "Kei Nishikori","David Goffin","John Isner","Milos Raonic",
+            "Adrian Mannarino","Dominic Thiem","Kevin Anderson","Andy Murray",
+            "Tomas Berdych","Gael Monfils","Juan Monaco","Fernando Verdasco",
+            "Novak Djokovic","David Ferrer","Kei Nishikori","John Isner",
+            "Dominic Thiem","Andy Murray","Tomas Berdych","Juan Monaco",
+            "Novak Djokovic","John Isner","Andy Murray","Tomas Berdych",
+            "Novak Djokovic","Andy Murray","Novak Djokovic")
+@
+
+The following code determines the accuracy of the predictions:
+
+<<>>=
+miami15 <- cbind(predictions, Winner)
+miami15$Player1 <- as.character(miami15$Player1)
+miami15$Player2 <- as.character(miami15$Player2)
+miami15$Winner <- as.character(miami15$Winner)
+
+for(k in 1:nrow(miami15)){
+  if(miami15$Probability[[k]]>.5){
+    if(miami15$Player1[[k]]==miami15$Winner[[k]]){
+      miami15$Accuracy[[k]] <- 1
+    } else{
+      miami15$Accuracy[[k]] <- 0
+    }
+  }
+  if(miami15$Probability[[k]]<.5){
+    if(miami15$Player2[[k]]==miami15$Winner[[k]]){
+      miami15$Accuracy[[k]] <- 1
+    } else{
+      miami15$Accuracy[[k]] <- 0
+    }
+  }
+}
+
+sum(miami15$Accuracy)/nrow(miami15)
+@
+
+Using the calculated elo ratings and the prediction function yielded about a 70\% accuracy in predicting the winner of all the matches for the 2015 Miami Open.  Except for most lopsided matchups where one player is clearly stronger than his opponent, tennis is a difficult sport to predict.  The individuality of the sport creates variability in the match results, as anything can happen during 1 v 1 matchups.
+
+\section{Conclusion}
+
+\section{Future Work}
+
+Women's statistics, elo ratings, and predictions
+
+Work on predicting a full tournament, where the website for the tournament is used in a function, and it returns probabilities for all the matchups.
+
+Work on Shiny app, and make it part of the \pkg{tennisR} package
+
+\section{Bibliography}
+
+\end{document}
