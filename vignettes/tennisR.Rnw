@@ -29,11 +29,11 @@
 
 \subsection{What is tennisR?} 
 
-Analytics is becoming more and more popular in tennis.  Statistics from each match are being collected, and can be used to find ways to improve a player's performance.  The \pkg{tennisR} package provides an easy way to put match statistics into a database form that can be used for analysis.  This package also can compute player ratings for any given time period, and make predictions based on these ratings.  The available functions in the \pkg{tennisR} package and a detailed explanation of their usage will be discussed in this vignette.
+Analytics is becoming more and more popular in tennis.  Statistics from each match are being recorded, made publicly available and can be used to find ways to improve a player's performance.  The \pkg{tennisR} package provides functions to extract match statistics from the relevant web sites and collate into a database form that can be used for analysis inside \pkg{R}.  There are also functions to compute player ratings for any given time period, and make match predictions based on these ratings.  The available functions, an explanation of their usage, and their usage for the Miami Open 2015 mens tournament are discussed here.
 
 \subsection{Data Collection}
 
-The \pkg{tennisR} package provides an initial dataset of match statistics.  These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association \citet{atp}.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
+The \pkg{tennisR} package provides an initial dataset of match statistics.  These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association \citep{atp}.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
 
 Since the statistics for each match are displayed by a unique web address, within each tournament, a \texttt{for} loop was used to read in all the match statistics.  The index of the \texttt{for} loop is dependent on how many tournaments are used.  For example, if match statistics were gathered from ten tournaments, the \texttt{for} loop would run from one to ten.  Once inside the \texttt{for} loop, the following set of code obtains all the links on any given tournament draw page:
 
@@ -79,7 +79,7 @@ files.2 <- paste(firstweb, "/match-stats", sep="")
 
 The websites are the same as before, but now R has no problem reading them.
 
-Each tournament website is then broken down in text form to determine the beginning and end dates for the tournament, and the size of the draw \citet{htmlToText}.
+Each tournament website is then broken down in text form to determine the beginning and end dates for the tournament, and the size of the draw \citep{htmlToText}.
 
 <<eval=FALSE>>=
 text <- x[j]
@@ -104,7 +104,7 @@ draw <- as.numeric(draw)
 
 Since the specific date of each match is not displayed, the length of the tournament is calculated and used with the number of rounds in the tournament to determine the number of days between matches.  The number of days between matches is then used to estimate the date of each match.
 
-Within the \texttt{for} loop for each tournament, another \texttt{for} loop is created that steps through each individual match within a tournament.  This \texttt{for} loop uses the results stored in files.2 for each tournament.  Using the \pkg{RCurl} package, the source code for each individual match can be found.
+Within the \texttt{for} loop for each tournament, another \texttt{for} loop is created that steps through each individual match within a tournament.  This \texttt{for} loop uses the results stored in files.2 for each tournament.  Using the \pkg{RCurl} package \citep{RCurl}, the source code for each individual match can be found.
 
 <<eval=FALSE>>=
 table <- getURL(files.2[i])
@@ -178,7 +178,7 @@ ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-
 \label{fig:murray}
 \end{figure}
 
-Other packages that were used in assembling the match statistics dataset are \pkg{lubridate} \citep{lubridate}, \pkg{plyr} \citep{plyr}, \pkg{RCurl} \citep{RCurl}, \pkg{scrapeR} \citep{scrapeR}, and \pkg{stringr} \citep{stringr}.
+Other packages that were used in assembling the match statistics dataset are \pkg{lubridate} \citep{lubridate}, \pkg{plyr} \citep{plyr}, \pkg{scrapeR} \citep{scrapeR}, and \pkg{stringr} \citep{stringr}.
 
 \section{Available Functions}
 
