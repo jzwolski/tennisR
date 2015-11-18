@@ -33,7 +33,7 @@ Analytics is becoming more and more popular in tennis.  Statistics from each mat
 
 \subsection{Data Collection}
 
-The \pkg{tennisR} package provides an initial dataset of match statistics.  These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
+The \pkg{tennisR} package provides an initial dataset of match statistics.  These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association \citet{atp}.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
 
 Since the statistics for each match are displayed by a unique web address, within each tournament, a \texttt{for} loop was used to read in all the match statistics.  The index of the \texttt{for} loop is dependent on how many tournaments are used.  For example, if match statistics were gathered from ten tournaments, the \texttt{for} loop would run from one to ten.  Once inside the \texttt{for} loop, the following set of code obtains all the links on any given tournament draw page:
 
@@ -52,7 +52,7 @@ htmlTreeParse(file = x[j],
               handlers = h1, useInternalNodes = TRUE)
 @
 
-The \texttt{getLinks} function and \texttt{htmlTreeParse} are both from the \pkg{XML} package.  The letter j represents the counter for the \texttt{for} loop.  Therefore, x[j] refers to the jth tournament website from a list of all tournament websites for which the match statistics will be used.  The next step is to subset this list of links to only include links for the individual matches.  This can be done by the following code:
+The \texttt{getLinks} function and \texttt{htmlTreeParse} are both from the \pkg{XML} package \citep{XML}.  The letter j represents the counter for the \texttt{for} loop.  Therefore, x[j] refers to the jth tournament website from a list of all tournament websites for which the match statistics will be used.  The next step is to subset this list of links to only include links for the individual matches.  This can be done by the following code:
 
 <<eval=FALSE>>==
 files.1 <- h1$links()[str_detect(h1$links(), "match-stats")]
@@ -79,7 +79,7 @@ files.2 <- paste(firstweb, "/match-stats", sep="")
 
 The websites are the same as before, but now R has no problem reading them.
 
-Each tournament website is then broken down in text form to determine the beginning and end dates for the tournament, and the size of the draw.
+Each tournament website is then broken down in text form to determine the beginning and end dates for the tournament, and the size of the draw \citet{htmlToText}.
 
 <<eval=FALSE>>=
 text <- x[j]
@@ -166,15 +166,19 @@ Most of the statistics also have a calculated difference associated with them.  
 
 Given the initial dataset of match statistics, graphs can be produced to look at trends among players, tournaments, or any variable in the dataset.  Figure \ref{fig:murray} shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
 
-s first serve percentage from June 1, 2015 to his last match at the 2015 U.S. Open.  Murray's first serve percentage ranges between 54\% and 79\% during this time frame.'
-
-<<murray, echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center',fig.cap='Andy Murray'>>=
+\begin{figure}[htp]
+<<murray, echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
 ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
        aes(x=Date, y=First_Serve_Per)) + ylab("First Serve Percentage") +
        geom_line() + 
        geom_point(data=MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
                   aes(x=Date, y=First_Serve_Per), size=4)
 @
+\caption{Murray's first serve percentage from June 1, 2015 to his last match at the 2015 U.S. Open.  Murray's first serve percentage ranges between 54\% and 79\% during this time frame.}
+\label{fig:murray}
+\end{figure}
+
+Other packages that were used in assembling the match statistics dataset are \pkg{lubridate} \citep{lubridate}, \pkg{plyr} \citep{plyr}, \pkg{RCurl} \citep{RCurl}, \pkg{scrapeR} \citep{scrapeR}, and \pkg{stringr} \citep{stringr}.
 
 \section{Available Functions}
 
@@ -196,9 +200,9 @@ These match statistics can then easily be combined with the base dataset by usin
 
 \subsection{MatchResultselo}
 
-The rest of the functions in the \pkg{tennisR} package relate to player ratings.  The ATP World Tour does have an official player ranking list, but this ranking is based on a yearly summation of points.  The chosen rating system for the \pkg{tennisR} package, the elo rating system, allows ratings to be calculated between any given time period.  In the elo rating system, each player is assigned an initial rating.  A player's rating changes each match, depending on the result.  The winning player will "take away" points from the losing player, thus increasing his player rating.  The losing player will lose points, thus decreasing his player rating.  The difference in elo rating between two players determines how many points are "transferred" from the losing player to the winning player.  However, if there is a large gap in points between players, and the higher rated player wins the match, very few points will be lost by the losing player since he was expected to lose the match.  If the lower rated player actually did win the match, many points would be transferred from the losing player to the winning player, thus increasing the player rating for the winner substantially.
+The rest of the functions in the \pkg{tennisR} package relate to player ratings.  The ATP World Tour does have an official player ranking list, but this ranking is based on a yearly summation of points.  The chosen rating system for the \pkg{tennisR} package, the elo rating system, allows ratings to be calculated between any given time period \citet{elo}.  In the elo rating system, each player is assigned an initial rating.  A player's rating changes each match, depending on the result.  The winning player will "take away" points from the losing player, thus increasing his player rating.  The losing player will lose points, thus decreasing his player rating.  The difference in elo rating between two players determines how many points are "transferred" from the losing player to the winning player.  However, if there is a large gap in points between players, and the higher rated player wins the match, very few points will be lost by the losing player since he was expected to lose the match.  If the lower rated player actually did win the match, many points would be transferred from the losing player to the winning player, thus increasing the player rating for the winner substantially.
 
-The \pkg{PlayerRatings} package by Alec Stephenson has a built in function that calculates elo ratings.  Since the elo rating system is only based on the result of each match, the full dataset of match statistics must be modified.  The \texttt{MatchResultselo} function in the \pkg{tennisR} package takes a full dataset of match statistics, and keeps only the four variables that are needed to calculate the elo ratings.  The first variable is the number of days from a specific date.  This starting date in the \texttt{MatchResultselo} function is December 30, 2012, since this is the day of the first match in the base dataset.  The next two variables are the names of the two players, one listed as the "Player", and the other listed as the "Opponent".  The final variable is the result of the match.  The result of the match is a numeric variable, where a "1" represents the "Player" winning the match, and a "0" represents the "Opponent" winning the match.  Since the result of the match can be specified in one row, there is only one row per match in this new dataset.  Example output from the \texttt{MatchResultselo} function is shown below:
+The \pkg{PlayerRatings} package by Alec Stephenson has a built in function that calculates elo ratings \citep{PlayerRatings}.  Since the elo rating system is only based on the result of each match, the full dataset of match statistics must be modified.  The \texttt{MatchResultselo} function in the \pkg{tennisR} package takes a full dataset of match statistics, and keeps only the four variables that are needed to calculate the elo ratings.  The first variable is the number of days from a specific date.  This starting date in the \texttt{MatchResultselo} function is December 30, 2012, since this is the day of the first match in the base dataset.  The next two variables are the names of the two players, one listed as the "Player", and the other listed as the "Opponent".  The final variable is the result of the match.  The result of the match is a numeric variable, where a "1" represents the "Player" winning the match, and a "0" represents the "Opponent" winning the match \citet{stephenson:2012}.  Since the result of the match can be specified in one row, there is only one row per match in this new dataset.  Example output from the \texttt{MatchResultselo} function is shown below:
 
 <<>>=
 matchresults <- MatchResultselo(MatchStats[MatchStats$Year==2014,])
@@ -270,9 +274,15 @@ Next, the \texttt{Eloratings\_nostatus} function was used to find the elo rating
 eloratings <- Eloratings_nostatus("2014-03-24","2015-03-24",matchresults)
 @
 
-Next, the vectors for the first two inputs in the \texttt{Predict} function were created.  The following vector shows all the players who are represented as Player 1 in their respective matches.
+Next, the names for the players for each match were used for the first two inputs in the \texttt{Predict} function.  The function allows for a vector to be used as an input, and an example of players who are represented as Player 1 in their respective matches is shown below.
 
-<<>>=
+<<eval=FALSE>>=
+player1 <- c("Paolo Lorenzi","Malek Jaziri","Lleyton Hewitt","Ricardas Berankis")
+@
+
+A vector for the players who are represented as Player 2 in their respective matches must also be created, and used as the second input in the \texttt{Predict} function.
+
+<<echo=FALSE>>=
 player1 <- c("Paolo Lorenzi","Malek Jaziri","Lleyton Hewitt","Ricardas Berankis",
              "Mikhail Kukushkin","Michael Berrer","Sam Groth","Jiri Vesely",
              "Andrey Golubev","Marcos Baghdatis","Andreas Haider-Maurer","Jerzy Janowicz",
@@ -299,9 +309,8 @@ player1 <- c("Paolo Lorenzi","Malek Jaziri","Lleyton Hewitt","Ricardas Berankis"
              "Novak Djokovic","Andy Murray","Novak Djokovic")
 @
 
-The following vector shows all the players who are represented as Player 2 in their respective matches.
 
-<<>>=
+<<echo=FALSE>>=
 player2 <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov",
              "Steve Johnson","Alejandro Falla","Alexander Zverev","Federico Delbonis",
              "Mikhail Youzhny","Simone Bolelli","Borna Coric","Edouard Roger-Vasselin",
@@ -335,9 +344,13 @@ predictions <- Predict(player1, player2, eloratings[[1]], 5, eloratings[[2]])
 head(predictions)
 @
 
-Next, the predictions are now compared to the actual results.  The following vector shows the winning players for each match.
+Next, the predictions are now compared to the actual results.  Again a vector of winning players must be created, and an example is shown below:
 
 <<>>=
+Winner <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov")
+@
+
+<<echo=FALSE>>=
 Winner <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov",
             "Mikhail Kukushkin","Alejandro Falla","Alexander Zverev","Federico Delbonis",
             "Mikhail Youzhny","Simone Bolelli","Borna Coric","Jerzy Janowicz",
@@ -394,6 +407,114 @@ sum(miami15$Accuracy)/nrow(miami15)
 
 Using the calculated elo ratings and the prediction function yielded about a 70\% accuracy in predicting the winner of all the matches for the 2015 Miami Open.  Except for most lopsided matchups where one player is clearly stronger than his opponent, tennis is a difficult sport to predict.  The individuality of the sport creates variability in the match results, as anything can happen during 1 v 1 matchups.
 
+To further test the accuracy of the predictions, the players were divided into groups based on their elo rating.  The first test split the players into two groups, one group for the top twenty players based on the elo rating, and the other group for all the other players.  Thirty three matches occurred during the 2015 Miami Open that contained one player from each group.  The accuracy of the predictions for these thirty three matches was about 76\%.  A second test again split the players into two groups, one group for the top ten players based on the elo ratings, and the other group for all the other players.  Twenty three matches occurred during the 2015 Miami Open that contained one player from each group.  The accuracy of the predictions for these twenty three matches was about 87\%.  The \texttt{Predict} function does well in correctly predicting matches where one of the players is a top rated player.  It is more difficult to predict matches between two players of similar rating, since these players tend to have very similar ability.
+
+<<echo=FALSE, eval=FALSE>>=
+eloratings <- Eloratingstodf(eloratings[[1]])
+group1 <- eloratings[c(1:74),]
+group2 <- eloratings[c(75:148),]
+group3 <- eloratings[c(149:222),]
+group4 <- eloratings[c(223:295),]
+
+surewin <- NULL
+group1_4 <- NULL
+for(k in 1:nrow(miami15)){
+  if(((miami15$Player1[k]%in%group1$Player)&(miami15$Player2[k]%in%group4$Player))|
+     ((miami15$Player1[k]%in%group4$Player)&(miami15$Player2[k]%in%group1$Player))){
+    surewin <- miami15[k,]
+  if(k==1){
+    group1_4 <- surewin
+  } else{
+    group1_4 <- rbind(group1_4,surewin)
+  }
+  }
+}
+
+surewin <- NULL
+group2_3 <- NULL
+for(k in 1:nrow(miami15)){
+  if(((miami15$Player1[k]%in%group2$Player)&(miami15$Player2[k]%in%group3$Player))|
+     ((miami15$Player1[k]%in%group3$Player)&(miami15$Player2[k]%in%group2$Player))){
+    surewin <- miami15[k,]
+  if(k==1){
+    group2_3 <- surewin
+  } else{
+    group2_3 <- rbind(group2_3,surewin)
+  }
+  }
+}
+
+surewin <- NULL
+group1_2 <- NULL
+for(k in 1:nrow(miami15)){
+  if(((miami15$Player1[k]%in%group1$Player)&(miami15$Player2[k]%in%group2$Player))|
+     ((miami15$Player1[k]%in%group2$Player)&(miami15$Player2[k]%in%group1$Player))){
+    surewin <- miami15[k,]
+  if(k==1){
+    group1_2 <- surewin
+  } else{
+    group1_2 <- rbind(group1_2,surewin)
+  }
+  }
+}
+
+top20 <- eloratings[c(1:20),]
+other <- eloratings[c(21:295),]
+surewin <- NULL
+grouptop20_other <- NULL
+for(k in 1:nrow(miami15)){
+  if(((miami15$Player1[k]%in%top20$Player)&(miami15$Player2[k]%in%other$Player))|
+     ((miami15$Player1[k]%in%other$Player)&(miami15$Player2[k]%in%top20$Player))){
+    surewin <- miami15[k,]
+  if(k==1){
+    grouptop20_other <- surewin
+  } else{
+    grouptop20_other <- rbind(grouptop20_other,surewin)
+  }
+  }
+}
+
+sum(grouptop20_other$Accuracy)/nrow(grouptop20_other)
+
+top15 <- eloratings[c(1:15),]
+other <- eloratings[c(16:295),]
+surewin <- NULL
+grouptop15_other <- NULL
+for(k in 1:nrow(miami15)){
+  if(((miami15$Player1[k]%in%top15$Player)&(miami15$Player2[k]%in%other$Player))|
+     ((miami15$Player1[k]%in%other$Player)&(miami15$Player2[k]%in%top15$Player))){
+    surewin <- miami15[k,]
+  if(k==1){
+    grouptop15_other <- surewin
+  } else{
+    grouptop15_other <- rbind(grouptop15_other,surewin)
+  }
+  }
+}
+
+sum(grouptop15_other$Accuracy)/nrow(grouptop15_other)
+
+top10 <- eloratings[c(1:10),]
+other <- eloratings[c(11:295),]
+surewin <- NULL
+grouptop10_other <- NULL
+for(k in 1:nrow(miami15)){
+  if(((miami15$Player1[k]%in%top10$Player)&(miami15$Player2[k]%in%other$Player))|
+     ((miami15$Player1[k]%in%other$Player)&(miami15$Player2[k]%in%top10$Player))){
+    surewin <- miami15[k,]
+  if(k==1){
+    grouptop10_other <- surewin
+  } else{
+    grouptop10_other <- rbind(grouptop10_other,surewin)
+  }
+  }
+}
+
+sum(grouptop10_other$Accuracy)/nrow(grouptop10_other)
+@
+
+\newpage
+
 \section{Conclusion}
 
 Professional tennis is becoming more data driven, as players can use the increased amount of data to improve performance, and fans can gain more insight about their favorite players.  The \pkg{tennisR} package helps gather match statistics into one common dataset, which then can be easily analyzed.  A base dataset is built into the package, but the user has the ability to add in data from any tournament via the \texttt{NewMatchStats} function.  There are many match statistics that can be used to show strengths and weaknesses in a player's game, and the statistics can be compared between the two players to possibly determine the deciding factor in the outcome of the match.  Instead of using the rankings on the ATP World Tour website, elo ratings can be created using the \texttt{Eloratings\_status} or \texttt{Eloratings\_nostatus} functions for any given time period.  These elo ratings can then be used to make predictions for any match, using the \texttt{Predict} function.  Overall, the \pkg{tennisR} package provides a useful way to compare many matches, and can help filling out the brackets for the Grand Slam tournaments.
@@ -406,27 +527,17 @@ Also, as shown in the case study example, it can be fairly tedious to input each
 
 A Shiny app is currently under construction, that will be very useful in visualizing the many match statistics.  In the app, the user will have the ability to choose any two players and any match statistics, and look at patterns and trends over a given time interval.  The elo ratings during these time intervals will also be plotted, giving the user the ability to see which match statistics have the greatest influence on the elo ratings.
 
-\section*{Related Work}
+\section{Related Work}
 
-\citet{fivethirtyeight}
-\citet{ibm}
+The website FiveThirtyEight has published articles about tennis analytics, and how data is being used now more than ever in tennis.  One example is an article about the length of tennis matches, and the trend in the number of seconds between points over the last few years \citet{fivethirtyeight}.
+
+IBM is very committed to tennis analytics, and their IBM Slamtracker is very useful in tracking match statistics during the course of the match \citet{ibm}.
 
 \section*{Acknowledgements}
 
 Plots are made with the R package \texttt{ggplot2} \citep{hadley:2009}.
 
-
-
 \bibliographystyle{asa}
 \bibliography{tennisR}
-\citet{XML}
-\citet{lubridate}
-\citet{plyr}
-\citet{stringr}
-\citet{PlayerRatings}
-\citet{scrapeR}
-\citet{RCurl}
-\citet{stephenson:2012}
-\citet{atp}
-\citep{elo}
+
 \end{document}
