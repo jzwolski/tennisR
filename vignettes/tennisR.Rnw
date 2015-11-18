@@ -4,6 +4,7 @@
 \setcounter{secnumdepth}{0}  % Remove section numbering at certain depth
 \usepackage[left=3cm,top=3cm,bottom=3.5cm,right=3cm]{geometry} % For easy document margins
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{natbib}
 
 \newcommand{\code}[1]{{\texttt{#1}}}
 \newcommand{\pkg}[1]{{\texttt{#1}}}
@@ -11,7 +12,6 @@
 \newcommand{\R}{{\normalfont\textsf{R }}{}}
 
 \begin{document}
-
 
 \title{Vignette: All About Tennis with tennisR}
 \author{Justin Zwolski}
@@ -52,7 +52,7 @@ htmlTreeParse(file = x[j],
               handlers = h1, useInternalNodes = TRUE)
 @
 
-The letter j represents the counter for the \texttt{for} loop.  Therefore, x[j] refers to the jth tournament website from a list of all tournament websites for which the match statistics will be used.  The next step is to subset this list of links to only include links for the individual matches.  This can be done by the following code:
+The \texttt{getLinks} function and \texttt{htmlTreeParse} are both from the \pkg{XML} package.  The letter j represents the counter for the \texttt{for} loop.  Therefore, x[j] refers to the jth tournament website from a list of all tournament websites for which the match statistics will be used.  The next step is to subset this list of links to only include links for the individual matches.  This can be done by the following code:
 
 <<eval=FALSE>>==
 files.1 <- h1$links()[str_detect(h1$links(), "match-stats")]
@@ -104,7 +104,7 @@ draw <- as.numeric(draw)
 
 Since the specific date of each match is not displayed, the length of the tournament is calculated and used with the number of rounds in the tournament to determine the number of days between matches.  The number of days between matches is then used to estimate the date of each match.
 
-Within the \texttt{for} loop for each tournament, another \texttt{for} loop is created that steps through each individual match within a tournament.  This \text{for} loop uses the results stored in files.2 for each tournament.  Using the \pkg{RCurl} package, the source code for each individual match can be found.
+Within the \texttt{for} loop for each tournament, another \texttt{for} loop is created that steps through each individual match within a tournament.  This \texttt{for} loop uses the results stored in files.2 for each tournament.  Using the \pkg{RCurl} package, the source code for each individual match can be found.
 
 <<eval=FALSE>>=
 table <- getURL(files.2[i])
@@ -145,8 +145,8 @@ library(scrapeR)
 library(PlayerRatings)
 library(lubridate)
 library(plyr)
-#library(dplyr)
 library(RCurl)
+library(XML)
 library(ggplot2)
 @
 
@@ -164,9 +164,11 @@ MatchStats[c(1,2),c(7,8,14,15)]
 
 Most of the statistics also have a calculated difference associated with them.  This is the difference in percentage of a statistic between two players in the same match.
 
-Given the initial dataset of match statistics, graphs can be produced to look at trends among players, tournaments, or any variable in the dataset.  The following graph shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
+Given the initial dataset of match statistics, graphs can be produced to look at trends among players, tournaments, or any variable in the dataset.  Figure \ref{fig:murray} shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
 
-<<murray, echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
+s first serve percentage from June 1, 2015 to his last match at the 2015 U.S. Open.  Murray's first serve percentage ranges between 54\% and 79\% during this time frame.'
+
+<<murray, echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center',fig.cap='Andy Murray'>>=
 ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
        aes(x=Date, y=First_Serve_Per)) + ylab("First Serve Percentage") +
        geom_line() + 
@@ -394,14 +396,37 @@ Using the calculated elo ratings and the prediction function yielded about a 70\
 
 \section{Conclusion}
 
+Professional tennis is becoming more data driven, as players can use the increased amount of data to improve performance, and fans can gain more insight about their favorite players.  The \pkg{tennisR} package helps gather match statistics into one common dataset, which then can be easily analyzed.  A base dataset is built into the package, but the user has the ability to add in data from any tournament via the \texttt{NewMatchStats} function.  There are many match statistics that can be used to show strengths and weaknesses in a player's game, and the statistics can be compared between the two players to possibly determine the deciding factor in the outcome of the match.  Instead of using the rankings on the ATP World Tour website, elo ratings can be created using the \texttt{Eloratings\_status} or \texttt{Eloratings\_nostatus} functions for any given time period.  These elo ratings can then be used to make predictions for any match, using the \texttt{Predict} function.  Overall, the \pkg{tennisR} package provides a useful way to compare many matches, and can help filling out the brackets for the Grand Slam tournaments.
+
 \section{Future Work}
 
-Women's statistics, elo ratings, and predictions
+The \pkg{tennisR} package is solely based on matches from the ATP World Tour, which is the men's professional tennis assocation.  The women also compete in tournaments almost year-round, and form the women's tennis association (WTA).  This package can easily extend to women's tennis, and build datasets of match statistics, calculate elo ratings, and compute predictions for women's matches.
 
-Work on predicting a full tournament, where the website for the tournament is used in a function, and it returns probabilities for all the matchups.
+Also, as shown in the case study example, it can be fairly tedious to input each individual match into the \texttt{Predict} function in order to obtain a probability.  In the future, the \pkg{tennisR} package will have another function, where the input will be a tournament draw website, similar to the input for the \texttt{NewMatchStats} function.  This new prediction function could then find probabilities for all the matches in a given tournament, without having to manually input each individual match.
 
-Work on Shiny app, and make it part of the \pkg{tennisR} package
+A Shiny app is currently under construction, that will be very useful in visualizing the many match statistics.  In the app, the user will have the ability to choose any two players and any match statistics, and look at patterns and trends over a given time interval.  The elo ratings during these time intervals will also be plotted, giving the user the ability to see which match statistics have the greatest influence on the elo ratings.
 
-\section{Bibliography}
+\section*{Related Work}
 
+\citet{fivethirtyeight}
+\citet{ibm}
+
+\section*{Acknowledgements}
+
+Plots are made with the R package \texttt{ggplot2} \citep{hadley:2009}.
+
+
+
+\bibliographystyle{asa}
+\bibliography{tennisR}
+\citet{XML}
+\citet{lubridate}
+\citet{plyr}
+\citet{stringr}
+\citet{PlayerRatings}
+\citet{scrapeR}
+\citet{RCurl}
+\citet{stephenson:2012}
+\citet{atp}
+\citep{elo}
 \end{document}
