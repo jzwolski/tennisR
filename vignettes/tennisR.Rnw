@@ -2,7 +2,7 @@
 
 \setlength{\parindent}{0pt} % Remove indent at new paragraphs
 \setcounter{secnumdepth}{0}  % Remove section numbering at certain depth
-\usepackage[left=3cm,top=3cm,bottom=3.5cm,right=3cm]{geometry} % For easy document margins
+\usepackage[left=3cm,top=3cm,bottom=3cm,right=3cm]{geometry} % For easy document margins
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \usepackage{natbib}
 
@@ -13,9 +13,9 @@
 
 \begin{document}
 
-\title{Vignette: All About Tennis with tennisR}
+\title{tennisR: All About Tennis}
 \author{Justin Zwolski}
-\date{\pkg{tennisR} version \Sexpr{packageDescription("tennisR")[["Version"]]} , \Sexpr{Sys.Date()} }
+\date{\pkg{tennisR} version \Sexpr{packageDescription("tennisR")[["Version"]]}, \Sexpr{Sys.Date()} }
 \maketitle
 
 
@@ -31,9 +31,55 @@
 
 Analytics is becoming more and more popular in tennis.  Statistics from each match are being recorded, made publicly available and can be used to find ways to improve a player's performance.  The \pkg{tennisR} package provides functions to extract match statistics from the relevant web sites and collate into a database form that can be used for analysis inside \pkg{R}.  There are also functions to compute player ratings for any given time period, and make match predictions based on these ratings.  The available functions, an explanation of their usage, and their usage for the Miami Open 2015 mens tournament are discussed here.
 
+\subsection{Available Data}
+
+The \pkg{tennisR} package provides an initial dataset of match statistics, called \texttt{MatchStats}. 
+
+This dataset contains statistics for all matches in the 2013 and 2014 full seasons, as well as matches in 2015 up to and including the U.S. Open, for a total of 7,327 matches.  Every match is given two rows, one row of match statistics for each player.  There are a total of 46 variables in the dataset.
+
+<<message=FALSE, warning=FALSE, echo=FALSE>>=
+library(tennisR)
+library(stringr)
+library(scrapeR)
+library(PlayerRatings)
+library(lubridate)
+library(plyr)
+library(RCurl)
+library(XML)
+library(ggplot2)
+@
+
+<<>>=
+data(MatchStats)
+kable(MatchStats[1:5,c(1:4, 7:8)])
+kable(MatchStats[1:5,c(1, 7:10, 12)])
+@
+
+The first few variables provide information about the specific tournament and match.  The majority of the variables are the match statistics, which include serving, returning, and overall statistics.  An example of one of the serving statistics is first serve percentage, the percentage of first serves in play.
+
+<<echo=FALSE>>=
+kable(MatchStats[1:5,c(7,8,14,15)])
+@
+
+Most of the statistics also have a difference associated with them, measuring the difference in percentage of a statistic between two players in the same match. This is additional information that is on the ATP web site, calculated by a function in the package. The full list of variables available is given in the Appendix.
+
+Various analyses can be conducted with this data, for example, trends of and between players, tournaments.  Figure \ref{fig:murray} shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
+
+\begin{figure}[htp]
+<<murray, echo=FALSE, warning=FALSE, message=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
+ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
+       aes(x=Date, y=First_Serve_Per)) + ylab("First Serve Percentage") +
+       geom_smooth() + 
+       geom_point(data=MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
+                  aes(x=Date, y=First_Serve_Per), size=4)
+@
+\caption{Murray's first serve percentage from June 1, 2015 to his last match at the 2015 U.S. Open.  Murray's first serve percentage ranges between 54\% and 79\% during this time frame.}
+\label{fig:murray}
+\end{figure}
+
 \subsection{Data Collection}
 
-The \pkg{tennisR} package provides an initial dataset of match statistics.  These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association \citep{atp}.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
+These statistics are collected from the ATP World Tour website, which is the website for the men's professional tennis association \citep{atp}.  Information about each tournament can be found in the Results Archive page.  Within this page, the player draw for each tournament shows all the player matchups and displays the score for each match as a hyperlink.  When the hyperlink is clicked on, a pop-up window opens displaying information about each match, as well as all the statistics.
 
 Since the statistics for each match are displayed by a unique web address, within each tournament, a \texttt{for} loop was used to read in all the match statistics.  The index of the \texttt{for} loop is dependent on how many tournaments are used.  For example, if match statistics were gathered from ten tournaments, the \texttt{for} loop would run from one to ten.  Once inside the \texttt{for} loop, the following set of code obtains all the links on any given tournament draw page:
 
@@ -134,49 +180,8 @@ matchtable$First_Serve_Per[[2]] <- as.numeric(gsub(":","",
 
 The date for each match is found by multiplying the number of days between matches by a certain factor, and then adding the beginning date of the tournament.  The draw size, and the round within each different draw size affects the date of each match.
 
-After all the match information and statistics is read into the matchtable dataframe, the matchtable dataframe is renamed and the data is stored.  The inner\texttt{for} loop then restarts, by using the next website for an individual match, in the same tournament.  All the match statistics are then found for this next match, and added to the match statistics for the previous match.  Once this inner \texttt{for} loop is complete, the outer \texttt{for} loop then restarts, by using the next website for a tournament.  The process is repeated for each new tournament.
+After all the match information and statistics is read into the matchtable dataframe, the matchtable dataframe is renamed and the data is stored.  The inner \texttt{for} loop then restarts, by using the next website for an individual match, in the same tournament.  All the match statistics are then found for this next match, and added to the match statistics for the previous match.  Once this inner \texttt{for} loop is complete, the outer \texttt{for} loop then restarts, by using the next website for a tournament.  The process is repeated for each new tournament.
 
-The base dataset in the \pkg{tennisR} package contains all matches for the 2013 and 2014 full seasons, as well as matches in 2015 up to and including the U.S. Open, for a total of 7,327 matches.  Every match is given two rows, one row of match statistics for each player.  There are a total of 46 variables in the dataset.
-
-<<message=FALSE, warning=FALSE, echo=FALSE>>=
-library(tennisR)
-library(stringr)
-library(scrapeR)
-library(PlayerRatings)
-library(lubridate)
-library(plyr)
-library(RCurl)
-library(XML)
-library(ggplot2)
-@
-
-<<>>=
-data(MatchStats)
-MatchStats[c(1,2),c(1:8)]
-dim(MatchStats)
-@
-
-The first few variables provide information about the specific tournament and match.  The majority of the variables are the match statistics, which include serving, returning, and overall statistics.  An example of one of the serving statistics is first serve percentage, the percentage of first serves in play.
-
-<<echo=FALSE>>=
-MatchStats[c(1,2),c(7,8,14,15)]
-@
-
-Most of the statistics also have a calculated difference associated with them.  This is the difference in percentage of a statistic between two players in the same match.
-
-Given the initial dataset of match statistics, graphs can be produced to look at trends among players, tournaments, or any variable in the dataset.  Figure \ref{fig:murray} shows Andy Murray's first serve percentage from June 1, 2015 to the end of his U.S. Open run in early September.
-
-\begin{figure}[htp]
-<<murray, echo=FALSE, fig.height=3.5, fig.width=5, fig.align='center'>>=
-ggplot(MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
-       aes(x=Date, y=First_Serve_Per)) + ylab("First Serve Percentage") +
-       geom_line() + 
-       geom_point(data=MatchStats[(MatchStats$Player=="Andy Murray")&(MatchStats$Date>="2015-05-31"),],
-                  aes(x=Date, y=First_Serve_Per), size=4)
-@
-\caption{Murray's first serve percentage from June 1, 2015 to his last match at the 2015 U.S. Open.  Murray's first serve percentage ranges between 54\% and 79\% during this time frame.}
-\label{fig:murray}
-\end{figure}
 
 Other packages that were used in assembling the match statistics dataset are \pkg{lubridate} \citep{lubridate}, \pkg{plyr} \citep{plyr}, \pkg{scrapeR} \citep{scrapeR}, and \pkg{stringr} \citep{stringr}.
 
@@ -274,13 +279,27 @@ Next, the \texttt{Eloratings\_nostatus} function was used to find the elo rating
 eloratings <- Eloratings_nostatus("2014-03-24","2015-03-24",matchresults)
 @
 
-Next, the names for the players for each match were used for the first two inputs in the \texttt{Predict} function.  The function allows for a vector to be used as an input, and an example of players who are represented as Player 1 in their respective matches is shown below.
+The \texttt{Predict} function needs the names of two players in order to predict who will win a match. It is also possible to provide a vector of names to predict multiple matchups.
 
-<<eval=FALSE>>=
-player1 <- c("Paolo Lorenzi","Malek Jaziri","Lleyton Hewitt","Ricardas Berankis")
+<<>>=
+player1 <- c("Paolo Lorenzi","Malek Jaziri","Lleyton Hewitt","Ricardas Berankis",
+             "Mikhail Kukushkin","Michael Berrer")
+player2 <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov",
+             "Steve Johnson","Alejandro Falla")
 @
 
-A vector for the players who are represented as Player 2 in their respective matches must also be created, and used as the second input in the \texttt{Predict} function.
+
+Next, the \texttt{Predict} function was used to find the probabilities of all the matches for the 2015 Miami Open.
+
+<<>>=
+predictions <- Predict(player1, player2, eloratings[[1]], 5, eloratings[[2]])
+head(predictions)
+@
+
+If the probability is bigger than 0.5 it means that player 1 is predicted to win. We would predict the winners to be:  "Martin Klizan", "Malek Jaziri", "Lleyton Hewitt", "Ricardas Berankis", "Steve Johnson", "Michael Berrer". Predictions can be compared to the actual results. The winners of these matches are: "Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov", "Mikhail Kukushkin","Alejandro Falla". Only one of our predictions was correct. 
+
+This process was repeated for the entire Miami tournament. 
+The following code calculates the accuracy of the predictions:
 
 <<echo=FALSE>>=
 player1 <- c("Paolo Lorenzi","Malek Jaziri","Lleyton Hewitt","Ricardas Berankis",
@@ -337,20 +356,8 @@ player2 <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopol
              "John Isner","Tomas Berdych","Andy Murray")
 @
 
-Next, the \texttt{Predict} function was used to find the probabilities of all the matches for the 2015 Miami Open.
-
-<<>>=
-predictions <- Predict(player1, player2, eloratings[[1]], 5, eloratings[[2]])
-head(predictions)
-@
-
-Next, the predictions are now compared to the actual results.  Again a vector of winning players must be created, and an example is shown below:
-
-<<>>=
-Winner <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov")
-@
-
 <<echo=FALSE>>=
+predictions <- Predict(player1, player2, eloratings[[1]], 5, eloratings[[2]])
 Winner <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolov",
             "Mikhail Kukushkin","Alejandro Falla","Alexander Zverev","Federico Delbonis",
             "Mikhail Youzhny","Simone Bolelli","Borna Coric","Jerzy Janowicz",
@@ -376,8 +383,6 @@ Winner <- c("Martin Klizan","Steve Darcis","Thomaz Bellucci","Alexandr Dolgopolo
             "Novak Djokovic","John Isner","Andy Murray","Tomas Berdych",
             "Novak Djokovic","Andy Murray","Novak Djokovic")
 @
-
-The following code determines the accuracy of the predictions:
 
 <<>>=
 miami15 <- cbind(predictions, Winner)
@@ -407,7 +412,9 @@ sum(miami15$Accuracy)/nrow(miami15)
 
 Using the calculated elo ratings and the prediction function yielded about a 70\% accuracy in predicting the winner of all the matches for the 2015 Miami Open.  Except for most lopsided matchups where one player is clearly stronger than his opponent, tennis is a difficult sport to predict.  The individuality of the sport creates variability in the match results, as anything can happen during 1 v 1 matchups.
 
-To further test the accuracy of the predictions, the players were divided into groups based on their elo rating.  The first test split the players into two groups, one group for the top twenty players based on the elo rating, and the other group for all the other players.  Thirty three matches occurred during the 2015 Miami Open that contained one player from each group.  The accuracy of the predictions for these thirty three matches was about 76\%.  A second test again split the players into two groups, one group for the top ten players based on the elo ratings, and the other group for all the other players.  Twenty three matches occurred during the 2015 Miami Open that contained one player from each group.  The accuracy of the predictions for these twenty three matches was about 87\%.  The \texttt{Predict} function does well in correctly predicting matches where one of the players is a top rated player.  It is more difficult to predict matches between two players of similar rating, since these players tend to have very similar ability.
+To further test the accuracy of the predictions, the players were divided into groups based on their elo rating.  The first test split the players into two groups, one group for the top twenty players based on the elo rating, and the other group for all the other players.  Thirty three matches occurred during the 2015 Miami Open that contained one player from each group.  The accuracy of the predictions for these thirty three matches was about 76\%.  
+
+A second test again split the players into two groups, one group for the top ten players based on the elo ratings, and the other group for all the other players.  Twenty three matches occurred during the 2015 Miami Open that contained one player from each group.  The accuracy of the predictions for these twenty three matches was about 87\%.  The \texttt{Predict} function does better in predicting matches where one of the players is a top rated player.  It is more difficult to predict matches between two players of similar rating.
 
 <<echo=FALSE, eval=FALSE>>=
 eloratings <- Eloratingstodf(eloratings[[1]])
@@ -513,8 +520,6 @@ for(k in 1:nrow(miami15)){
 sum(grouptop10_other$Accuracy)/nrow(grouptop10_other)
 @
 
-\newpage
-
 \section{Conclusion}
 
 Professional tennis is becoming more data driven, as players can use the increased amount of data to improve performance, and fans can gain more insight about their favorite players.  The \pkg{tennisR} package helps gather match statistics into one common dataset, which then can be easily analyzed.  A base dataset is built into the package, but the user has the ability to add in data from any tournament via the \texttt{NewMatchStats} function.  There are many match statistics that can be used to show strengths and weaknesses in a player's game, and the statistics can be compared between the two players to possibly determine the deciding factor in the outcome of the match.  Instead of using the rankings on the ATP World Tour website, elo ratings can be created using the \texttt{Eloratings\_status} or \texttt{Eloratings\_nostatus} functions for any given time period.  These elo ratings can then be used to make predictions for any match, using the \texttt{Predict} function.  Overall, the \pkg{tennisR} package provides a useful way to compare many matches, and can help filling out the brackets for the Grand Slam tournaments.
@@ -539,5 +544,14 @@ Plots are made with the R package \texttt{ggplot2} \citep{hadley:2009}.  The \pk
 
 \bibliographystyle{asa}
 \bibliography{tennisR}
+
+\newpage
+\section*{Appendix}
+
+Variables available in the \texttt{MatchStats} data set. 
+
+<<echo=FALSE>>=
+kable(colnames(MatchStats))
+@
 
 \end{document}
