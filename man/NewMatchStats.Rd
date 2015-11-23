@@ -4,10 +4,10 @@
 \alias{NewMatchStats}
 \title{Creates a database of match statistics for tournaments.}
 \usage{
-NewMatchStats(x)
+NewMatchStats(website)
 }
 \arguments{
-\item{x}{A list of websites from the ATP World Tour website.  Use websites of the player draw from the Results Archive page.}
+\item{website}{A list of websites from the ATP World Tour.  Use websites of the player draw from the Results Archive page.}
 }
 \value{
 A complete database of match statistics.

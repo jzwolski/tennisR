@@ -1,9 +1,9 @@
 #' Creates a database of match statistics for tournaments.
 #'
-#' @param x A list of websites from the ATP World Tour website.  Use websites of the player draw from the Results Archive page.
+#' @param website A list of websites from the ATP World Tour.  Use websites of the player draw from the Results Archive page.
 #' @return A complete database of match statistics.
 #' @export
-NewMatchStats <- function(x){
+NewMatchStats <- function(website){
   additionalMatchStats <- NULL
   
   getLinks = function() { 
