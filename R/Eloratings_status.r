@@ -13,7 +13,7 @@ Eloratings_status <- function(date1, date2, results){
   beginningdate <- as.Date("2012-12-30", "%Y-%m-%d")
   lagdays1 <- lagdate1 - beginningdate
   lagdays2 <- lagdate2 - beginningdate
-  results.lagsubset <- x[which((x$Day>=lagdays1)&(x$Day<=lagdays2)),]
+  results.lagsubset <- results[which((results$Day>=lagdays1)&(results$Day<=lagdays2)),]
   elo.lagsubset <- elo(results.lagsubset, status=NULL, init=0, sort=T)
   elo.lagsubset <- ldply(elo.lagsubset, data.frame)
   elo.lagsubset <- elo.lagsubset[c(2,3)]
@@ -21,7 +21,7 @@ Eloratings_status <- function(date1, date2, results){
   
   days1 <- date1 - beginningdate
   days2 <- date2 - beginningdate
-  results.subset <- x[which((x$Day>=days1)&(x$Day<=days2)),]
+  results.subset <- results[which((results$Day>=days1)&(results$Day<=days2)),]
   elo.subset <- elo(results.subset, status=elo.lagsubset, init=0, sort=T)
   fullresults <- rbind(results.lagsubset, results.subset)
   return(list(elo.subset, fullresults))

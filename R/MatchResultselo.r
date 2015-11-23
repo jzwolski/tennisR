@@ -4,7 +4,7 @@
 #' @return A dataset of match results formatted to find elo ratings.
 #' @export
 MatchResultselo <- function(stats){
-  MatchResultselo <- x[c(3,7,8,9)]
+  MatchResultselo <- stats[c(3,7,8,9)]
   names(MatchResultselo)[4] <- "Result"
   names(MatchResultselo)[1] <- "Day"
   
