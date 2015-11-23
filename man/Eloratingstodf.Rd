@@ -4,10 +4,10 @@
 \alias{Eloratingstodf}
 \title{Transforms a list of elo ratings into a data frame.}
 \usage{
-Eloratingstodf(x)
+Eloratingstodf(ratings)
 }
 \arguments{
-\item{x}{A list of elo ratings.}
+\item{ratings}{A list of elo ratings.}
 }
 \value{
 The elo ratings in a data frame.

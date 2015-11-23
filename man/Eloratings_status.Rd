@@ -4,14 +4,14 @@
 \alias{Eloratings_status}
 \title{Creates elo ratings for players within a specified time frame, also including matches one month before the specified time frame.}
 \usage{
-Eloratings_status(date1, date2, x)
+Eloratings_status(date1, date2, results)
 }
 \arguments{
 \item{date1}{The beginning date for ratings, example 2015-03-14.}
 
 \item{date2}{The end date for ratings, example 2015-03-14.}
 
-\item{x}{A data frame where first column is the number of days from a specified date, the second column is Player 1, the third column is Player 2, and the last column is the result, either a 0 or 1.}
+\item{results}{A data frame where first column is the number of days from a specified date, the second column is Player 1, the third column is Player 2, and the last column is the result, either a 0 or 1.}
 }
 \value{
 A list of elo ratings and match results.

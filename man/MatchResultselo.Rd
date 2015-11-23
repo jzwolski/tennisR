@@ -4,10 +4,10 @@
 \alias{MatchResultselo}
 \title{Formats a database of match statistics to be able to find elo ratings.}
 \usage{
-MatchResultselo(x)
+MatchResultselo(stats)
 }
 \arguments{
-\item{x}{Database of match statistics, in the form of the MatchStats database.}
+\item{stats}{Database of match statistics, in the form of the MatchStats database.}
 }
 \value{
 A dataset of match results formatted to find elo ratings.

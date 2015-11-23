@@ -2,10 +2,10 @@
 #' 
 #' @param date1 The beginning date for ratings, example 2015-03-14.
 #' @param date2 The end date for ratings, example 2015-03-14.
-#' @param x A data frame where first column is the number of days from a specified date, the second column is Player 1, the third column is Player 2, and the last column is the result, either a 0 or 1.
+#' @param results A data frame where first column is the number of days from a specified date, the second column is Player 1, the third column is Player 2, and the last column is the result, either a 0 or 1.
 #' @return A list of elo ratings and match results.
 #' @export
-Eloratings_status <- function(date1, date2, x){
+Eloratings_status <- function(date1, date2, results){
   date1 <- as.Date(date1, "%Y-%m-%d")
   date2 <- as.Date(date2, "%Y-%m-%d")
   lagdate1 <- date1 %m-% months(1)

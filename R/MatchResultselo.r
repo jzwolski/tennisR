@@ -1,9 +1,9 @@
 #' Formats a database of match statistics to be able to find elo ratings.
 #' 
-#' @param x Database of match statistics, in the form of the MatchStats database.
+#' @param stats Database of match statistics, in the form of the MatchStats database.
 #' @return A dataset of match results formatted to find elo ratings.
 #' @export
-MatchResultselo <- function(x){
+MatchResultselo <- function(stats){
   MatchResultselo <- x[c(3,7,8,9)]
   names(MatchResultselo)[4] <- "Result"
   names(MatchResultselo)[1] <- "Day"
