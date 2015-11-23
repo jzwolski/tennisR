@@ -68,11 +68,11 @@ NewMatchStats <- function(website){
     return(text.vector)
   }
   
-  for (j in 1:length(x))
+  for (j in 1:length(website))
   {
     #Find all links on the page of the draws#
     h1 <- getLinks()
-    htmlTreeParse(file = x[j],
+    htmlTreeParse(file = website[j],
                   handlers = h1, useInternalNodes = TRUE)
     #h1$links()
     
@@ -85,7 +85,7 @@ NewMatchStats <- function(website){
     files.2 <- paste(firstweb, "/match-stats", sep="")
     
     #Pull out text from website
-    text <- x[j]
+    text <- website[j]
     text <- htmlToText(text)  
     
     #Obtain the beginning and end dates of the tournament  
@@ -131,7 +131,7 @@ NewMatchStats <- function(website){
       matchtable$MatchID <- i
       
       ##Year##
-      year <- gsub(".*([2][0][0-1][0-9]).*", "\\1", x[j])
+      year <- gsub(".*([2][0][0-1][0-9]).*", "\\1", website[j])
       year <- as.numeric(year)
       matchtable$Year <- year
       
